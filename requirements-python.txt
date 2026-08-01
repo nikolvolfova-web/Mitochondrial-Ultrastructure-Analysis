@@ -1,0 +1,8 @@
+# Direct runtime dependencies used in the synthetic validation environment.
+# A complete transitive lock remains pending validation on the approved data.
+matplotlib==3.10.8
+numpy==2.5.1
+pandas==2.2.3
+scikit-image==0.26.0
+scipy==1.18.0
+tifffile==2026.7.14
