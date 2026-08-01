@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# R
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+
+# R package environment
+renv/library/
+renv/staging/
+renv/python/
+
+# Private research data
+data/private/
+private_validation_data/
+validation_reference/
+validation_output/
+local_data/
+local_results/
+
+# Research workbooks
+*.xlsx
+*.xls
+*.xlsm
+*.xlsb
+~$*
+
+# GraphPad Prism
+*.pzfx
+*.pzf
+
+# Generated outputs
+results/private/
+results/generated/
+outputs/
+output/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
