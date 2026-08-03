@@ -78,6 +78,30 @@ Relevant values from the Python CSV outputs were manually transferred into an au
 
 The transfer from Python CSV outputs to the automated workbook is an original manual preparation step and will be independently validated before release.
 
+### Visual quality control of automated segmentation
+
+The Python-generated CSV files were retained unchanged as the primary
+computational output of the automated segmentation workflow.
+
+Before statistical analysis, segmented mitochondrial objects underwent visual
+quality control. Objects were excluded only when they represented segmentation
+artefacts and did not correspond to valid mitochondrial profiles in the source
+image.
+
+The exclusion criterion was not based on the number of detected cristae.
+Valid mitochondrial profiles with zero detected cristae remained included in
+the curated automated dataset.
+
+Consequently, differences between the number of mitochondrial labels in the
+raw Python outputs and the number of mitochondria recorded in the curated
+automated workbook may reflect the removal of invalid segmentation artefacts,
+rather than the removal of biologically valid mitochondria without detected
+cristae.
+
+The original Python CSV outputs were not modified. The automated Excel
+workbook represents the visually reviewed and curated analytical dataset used
+in the downstream analyses.
+
 ## Planned R analysis workflows
 
 The new R scripts will reproduce the original analytical logic using documented inputs and explicit validation checks.
