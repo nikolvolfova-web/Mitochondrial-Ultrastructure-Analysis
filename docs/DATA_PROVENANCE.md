@@ -95,6 +95,29 @@ Before release, the automated workbook will be validated against the correspondi
 * excluded records; and
 * consistency of the workbook with the original Python outputs.
 
+### Visual curation of automated mitochondrial objects
+
+The automated workbook was not created by mechanically copying every
+mitochondrial label reported by the Python preprocessing workflow.
+
+Before inclusion in the analytical workbook, the automated segmentation
+outputs were visually reviewed. Labels that did not correspond to valid
+mitochondrial profiles in the source image were classified as segmentation
+artefacts and excluded from the curated analytical dataset.
+
+The presence or absence of detected cristae was not itself an inclusion
+criterion. A valid mitochondrial profile could remain included even when no
+cristae were detected. Conversely, an invalid segmentation object could be
+excluded regardless of the number of cristae assigned to it.
+
+The relationship between the two data levels is therefore:
+
+```text
+unchanged Python CSV outputs
+    → visual review of mitochondrial segmentation validity
+    → exclusion of confirmed segmentation artefacts
+    → curated automated workbook
+
 ## Preparation of the combined Prism input
 
 The manual and automated Excel workbooks were processed together to create a combined Prism input table.
