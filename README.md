@@ -78,29 +78,29 @@ Relevant values from the Python CSV outputs were manually transferred into an au
 
 The transfer from Python CSV outputs to the automated workbook is an original manual preparation step and will be independently validated before release.
 
-### Visual quality control of automated segmentation
+### Quality control of mitochondrial segmentation objects
 
-The Python-generated CSV files were retained unchanged as the primary
-computational output of the automated segmentation workflow.
+The purpose of the automated workflow was the quantification of cristae, not
+the independent quantification or evaluation of mitochondrial segmentation.
 
-Before statistical analysis, segmented mitochondrial objects underwent visual
-quality control. Objects were excluded only when they represented segmentation
-artefacts and did not correspond to valid mitochondrial profiles in the source
-image.
+Mitochondrial segmentation was used to define valid mitochondrial compartments
+to which detected cristae were assigned. Before statistical analysis, the
+mitochondrial labels were therefore visually reviewed to identify clear
+segmentation errors.
+
+Labels that did not correspond to real mitochondrial profiles in the source
+image were excluded because they did not represent valid compartments for
+cristae quantification. This curation did not involve modifying the original
+Python outputs or mechanically correcting the segmentation masks.
 
 The exclusion criterion was not based on the number of detected cristae.
-Valid mitochondrial profiles with zero detected cristae remained included in
-the curated automated dataset.
+Valid mitochondrial profiles with zero detected cristae remained included.
+Only labels representing confirmed mitochondrial-segmentation errors were
+excluded from the curated analytical dataset.
 
-Consequently, differences between the number of mitochondrial labels in the
-raw Python outputs and the number of mitochondria recorded in the curated
-automated workbook may reflect the removal of invalid segmentation artefacts,
-rather than the removal of biologically valid mitochondria without detected
-cristae.
-
-The original Python CSV outputs were not modified. The automated Excel
-workbook represents the visually reviewed and curated analytical dataset used
-in the downstream analyses.
+The original Python CSV files were retained unchanged as the primary
+computational output. The automated Excel workbook represents the curated
+analytical dataset used for downstream cristae analyses.
 
 ## Planned R analysis workflows
 
