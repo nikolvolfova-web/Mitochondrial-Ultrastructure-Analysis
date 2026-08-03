@@ -95,73 +95,51 @@ Before release, the automated workbook will be validated against the correspondi
 * excluded records; and
 * consistency of the workbook with the original Python outputs.
 
-### Visual curation of automated mitochondrial objects
+### Curation of mitochondrial segmentation errors
 
-The automated workbook was not created by mechanically copying every
-mitochondrial label reported by the Python preprocessing workflow.
+The automated workflow was designed to quantify cristae within segmented
+mitochondrial compartments. It was not intended as an independent assessment
+of mitochondrial number or mitochondrial segmentation performance.
 
-Before inclusion in the analytical workbook, the automated segmentation
-outputs were visually reviewed. Labels that did not correspond to valid
-mitochondrial profiles in the source image were classified as segmentation
-artefacts and excluded from the curated analytical dataset.
+The mitochondrial segmentation labels were used to assign cristae to valid
+mitochondrial profiles. Before the downstream analysis, these labels were
+visually reviewed for clear segmentation errors.
 
-The presence or absence of detected cristae was not itself an inclusion
-criterion. A valid mitochondrial profile could remain included even when no
-cristae were detected. Conversely, an invalid segmentation object could be
-excluded regardless of the number of cristae assigned to it.
+A label was excluded when it did not correspond to a real mitochondrial
+profile in the source image and therefore did not represent a valid
+compartment for cristae quantification.
 
-The relationship between the two data levels is therefore:
+The decision was not based on whether cristae were detected. Valid
+mitochondrial profiles with zero detected cristae remained included, whereas
+confirmed mitochondrial-segmentation artefacts were excluded.
 
-```text
-unchanged Python CSV outputs
-    → visual review of mitochondrial segmentation validity
-    → exclusion of confirmed segmentation artefacts
-    → curated automated workbook
-
-## Preparation of the combined Prism input
-
-The manual and automated Excel workbooks were processed together to create a combined Prism input table.
-
-The reconstructed script will be stored as:
+The data relationship was therefore:
 
 ```text
-scripts/prepare_prism_input.R
-```
-
-Its intended responsibilities are:
-
-* reading the manual and automated workbooks;
-* validating their schemas;
-* standardizing column names and data types;
-* identifying missing or duplicated records;
-* adding the measurement-method designation;
-* combining the two datasets; and
-* exporting the shared Prism input table.
-
-The exact transformations will be documented only after validation against the original workbooks and the original Prism input file.
+unchanged Python outputs
+    → review of mitochondrial labels used as cristae compartments
+    → exclusion of confirmed mitochondrial-segmentation errors
+    → curated automated analytical workbook
 
 ### Representative control example
 
-For control image `C2_002_30000x`, the raw Python output reported mitochondrial
+For control image `C2_002_30000x`, the Python output contained mitochondrial
 labels 1, 2, 3, and 4.
 
-Visual inspection of the mitochondrial segmentation mask confirmed that
-labels 1 and 4 corresponded to valid mitochondrial profiles. Labels 2 and 3
-did not correspond to valid visible mitochondrial objects and were therefore
-classified as segmentation artefacts.
+Visual inspection showed that labels 1 and 4 corresponded to real
+mitochondrial profiles. Labels 2 and 3 did not correspond to visible
+mitochondrial objects and were confirmed as mitochondrial-segmentation errors.
 
-Accordingly:
+Because the purpose of the workflow was cristae quantification within valid
+mitochondrial compartments, labels 2 and 3 were excluded from the curated
+analytical dataset.
 
-- mitochondrial labels 1 and 4 were retained;
-- labels 2 and 3 were excluded as confirmed segmentation artefacts.
+Their exclusion was not caused by a zero cristae count. Valid mitochondrial
+profiles with zero detected cristae remained included.
 
-This exclusion was unrelated to the absence of detected cristae. Valid
-mitochondria with zero detected cristae remained eligible for inclusion.
-
-A pseudonymized representative QC image may be added to the repository after
-its filename, visible labels, and embedded metadata have passed the release
-review. Complete patient-level QC material will remain outside the public
-repository.
+This representative control example illustrates the quality-control principle.
+Complete patient-level QC material is not publicly distributed because it
+belongs to a protected research dataset.
 
 ## Analyses using the combined Prism input
 
