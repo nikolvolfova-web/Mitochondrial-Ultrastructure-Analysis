@@ -157,29 +157,23 @@ message("Output workbook:    ", output_path)
 # 3. Normalize group and subject identifiers
 # -----------------------------------------------------------------------------
 
-normalize_group <- function(sheet_name, image_id) {
-  is_control_sheet <- stringr::str_detect(
-    sheet_name,
-    stringr::regex("^Ctrl", ignore_case = TRUE)
-  )
-
-  if (!is_control_sheet) {
-    return(sheet_name)
-  }
-
+normalize_group <- function(sheet_name) {
   dplyr::case_when(
-    stringr::str_detect(image_id, "^C1_") ~ "Ctrl. R",
-    stringr::str_detect(image_id, "^C2_") ~ "Ctrl. C",
-    TRUE ~ NA_character_
+    stringr::str_detect(
+      sheet_name,
+      stringr::regex("^Ctrl", ignore_case = TRUE)
+    ) ~ "Ctrl",
+    TRUE ~ sheet_name
   )
 }
 
 
-derive_subject_id <- function(group) {
+derive_subject_id <- function(group, image_id) {
   dplyr::case_when(
-    group == "Ctrl. R" ~ "C1",
-    group == "Ctrl. C" ~ "C2",
-    TRUE ~ group
+    group == "Ctrl" & stringr::str_detect(image_id, "^C1_") ~ "C1",
+    group == "Ctrl" & stringr::str_detect(image_id, "^C2_") ~ "C2",
+    group != "Ctrl" ~ group,
+    TRUE ~ NA_character_
   )
 }
 
@@ -277,16 +271,15 @@ parse_sheet <- function(path, sheet_name) {
     return(tibble::tibble())
   }
 
-  dplyr::bind_rows(parsed_rows) |>
-    dplyr::mutate(
-      group = normalize_group(source_sheet, image_id),
-      disease_status = dplyr::if_else(
-        stringr::str_detect(group, "^Ctrl"),
-        "Ctrl",
-        "HD"
-      ),
-      subject_id = derive_subject_id(group)
-    ) |>
+  dplyr::mutate(
+    group = normalize_group(source_sheet),
+    disease_status = dplyr::if_else(
+      group == "Ctrl",
+      "Ctrl",
+      "HD"
+    ),
+    subject_id = derive_subject_id(group, image_id)
+  ) |>
     dplyr::relocate(
       group,
       disease_status,
@@ -316,20 +309,20 @@ summarize_workbook <- function(path) {
     )
   }
 
-  invalid_control_groups <- per_mitochondrion |>
+  invalid_control_subjects <- per_mitochondrion |>
     dplyr::filter(
-      stringr::str_detect(source_sheet, stringr::regex("^Ctrl", ignore_case = TRUE)),
-      is.na(group)
+      group == "Ctrl",
+      is.na(subject_id) | !subject_id %in% c("C1", "C2")
     )
 
-  if (nrow(invalid_control_groups) > 0) {
+  if (nrow(invalid_control_subjects) > 0) {
     print(
-      invalid_control_groups |>
-        dplyr::distinct(source_sheet, image_id)
+      invalid_control_subjects |>
+        dplyr::distinct(source_sheet, image_id, subject_id)
     )
 
     stop(
-      "At least one control image could not be assigned to C1 or C2.",
+      "At least one control image could not be assigned to subject C1 or C2.",
       call. = FALSE
     )
   }
@@ -439,8 +432,7 @@ compare_images <- dplyr::inner_join(
 )
 
 expected_group_order <- c(
-  "Ctrl. R",
-  "Ctrl. C",
+  "Ctrl",
   paste0("P", 1:10)
 )
 
@@ -448,7 +440,7 @@ compare_images <- compare_images |>
   dplyr::mutate(
     .group_order = match(group, expected_group_order)
   ) |>
-  dplyr::arrange(.group_order, image_id) |>
+  dplyr::arrange(.group_order, subject_id, image_id) |>
   dplyr::select(-.group_order)
 
 
