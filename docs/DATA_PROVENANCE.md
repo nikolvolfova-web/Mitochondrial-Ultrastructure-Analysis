@@ -140,6 +140,29 @@ Its intended responsibilities are:
 
 The exact transformations will be documented only after validation against the original workbooks and the original Prism input file.
 
+### Representative control example
+
+For control image `C2_002_30000x`, the raw Python output reported mitochondrial
+labels 1, 2, 3, and 4.
+
+Visual inspection of the mitochondrial segmentation mask confirmed that
+labels 1 and 4 corresponded to valid mitochondrial profiles. Labels 2 and 3
+did not correspond to valid visible mitochondrial objects and were therefore
+classified as segmentation artefacts.
+
+Accordingly:
+
+- mitochondrial labels 1 and 4 were retained;
+- labels 2 and 3 were excluded as confirmed segmentation artefacts.
+
+This exclusion was unrelated to the absence of detected cristae. Valid
+mitochondria with zero detected cristae remained eligible for inclusion.
+
+A pseudonymized representative QC image may be added to the repository after
+its filename, visible labels, and embedded metadata have passed the release
+review. Complete patient-level QC material will remain outside the public
+repository.
+
 ## Analyses using the combined Prism input
 
 The combined Prism input table was used for two downstream analytical branches.
