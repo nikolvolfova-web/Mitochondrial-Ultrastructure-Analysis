@@ -1,0 +1,73 @@
+name: Test R Prism input preparation
+
+on:
+  push:
+    branches:
+      - scripts/reconstruct-r-workflow
+    paths:
+      - "scripts/prepare_prism_input.R"
+      - "data/curated/**"
+      - ".github/workflows/r-prepare-prism.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  prepare-prism-input:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install required R packages
+        run: |
+          Rscript -e '
+            install.packages(
+              c("readxl", "dplyr", "stringr", "tibble", "writexl"),
+              repos = "https://cloud.r-project.org"
+            )
+          '
+
+      - name: Run Prism input preparation
+        run: |
+          Rscript scripts/prepare_prism_input.R
+
+      - name: Verify generated workbook
+        run: |
+          test -f results/derived/Prism_input.xlsx
+
+          Rscript -e '
+            path <- "results/derived/Prism_input.xlsx"
+            sheets <- readxl::excel_sheets(path)
+
+            cat("Generated worksheets:\n")
+            print(sheets)
+
+            for (sheet in sheets) {
+              data <- readxl::read_excel(path, sheet = sheet)
+
+              cat(
+                sprintf(
+                  "%s: %d rows x %d columns\n",
+                  sheet,
+                  nrow(data),
+                  ncol(data)
+                )
+              )
+            }
+          '
+
+      - name: Upload generated Prism workbook
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-prism-input
+          path: results/derived/Prism_input.xlsx
+          if-no-files-found: error
+          retention-days: 14
