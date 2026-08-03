@@ -1,355 +1,246 @@
-# =============================================================================
-# PREPARE PRISM INPUT
+# =========================================================
+# PRISM INPUT EXPORT: manual vs automated cristae counts
 #
-# Purpose:
-#   Combine the curated manual and automated cristae workbooks into aligned
-#   image-level tables for downstream statistical analyses and Prism.
+# 1 row = 1 image
 #
-# Expected inputs:
-#   data/curated/cristae_manual*.xlsx
-#   data/curated/cristae_automated*.xlsx
+# Inputs:
+#   data/curated/cristae_automated.xlsx
+#   data/curated/cristae_manual.xlsx
 #
 # Output:
 #   results/derived/Prism_input.xlsx
 #
-# Run from the repository:
-#   Rscript scripts/prepare_prism_input.R
-# =============================================================================
+# Output worksheets:
+#   - compare_images
+#   - BA_total
+#   - Scatter_total
+#   - BA_mean_per_mito
+#   - Scatter_mean_per_mito
+#   - BA_label_totals
+#   - QC_missing_in_auto
+#   - QC_missing_in_manual
+# =========================================================
 
 
-# -----------------------------------------------------------------------------
-# 1. Package checks
-# -----------------------------------------------------------------------------
+# ---------- 0) instalace chybejicich balicku ----------
 
-required_packages <- c(
+needed_pkgs <- c(
   "readxl",
   "dplyr",
   "stringr",
-  "tibble",
-  "writexl"
+  "tidyr",
+  "writexl",
+  "tibble"
 )
 
-missing_packages <- required_packages[
-  !vapply(
-    required_packages,
-    requireNamespace,
-    logical(1),
-    quietly = TRUE
-  )
+to_install <- needed_pkgs[
+  !needed_pkgs %in% installed.packages()[, "Package"]
 ]
 
-if (length(missing_packages) > 0) {
+if (length(to_install) > 0) {
+  install.packages(
+    to_install,
+    repos = "https://cloud.r-project.org"
+  )
+}
+
+
+# ---------- 1) nacteni balicku ----------
+
+library(readxl)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(writexl)
+library(tibble)
+
+
+# ---------- 2) cesty k souborum v repozitari ----------
+
+auto_path <- file.path(
+  "data",
+  "curated",
+  "cristae_automated.xlsx"
+)
+
+man_path <- file.path(
+  "data",
+  "curated",
+  "cristae_manual.xlsx"
+)
+
+if (!file.exists(auto_path)) {
   stop(
-    paste0(
-      "Missing R packages: ",
-      paste(missing_packages, collapse = ", "),
-      "\nInstall the project dependencies before running this script."
+    paste(
+      "Automated workbook was not found:",
+      auto_path
     ),
     call. = FALSE
   )
 }
 
-
-# -----------------------------------------------------------------------------
-# 2. Locate repository and input files
-# -----------------------------------------------------------------------------
-
-find_repository_root <- function(start_directory = getwd()) {
-  current_directory <- normalizePath(
-    start_directory,
-    winslash = "/",
-    mustWork = TRUE
+if (!file.exists(man_path)) {
+  stop(
+    paste(
+      "Manual workbook was not found:",
+      man_path
+    ),
+    call. = FALSE
   )
-
-  repeat {
-    repository_marker_found <-
-      dir.exists(file.path(current_directory, ".git")) ||
-      file.exists(
-        file.path(
-          current_directory,
-          "Mitochondrial-Ultrastructure-R-Analysis.Rproj"
-        )
-      ) ||
-      (
-        dir.exists(file.path(current_directory, "data")) &&
-        dir.exists(file.path(current_directory, "scripts"))
-      )
-
-    if (repository_marker_found) {
-      return(current_directory)
-    }
-
-    parent_directory <- dirname(current_directory)
-
-    if (identical(parent_directory, current_directory)) {
-      stop(
-        "Repository root could not be located. Run the script from inside the repository.",
-        call. = FALSE
-      )
-    }
-
-    current_directory <- parent_directory
-  }
 }
 
+cat("Strojovy soubor:\n", auto_path, "\n\n")
+cat("Rucni soubor:\n", man_path, "\n\n")
 
-find_single_input <- function(directory, pattern, description) {
-  files <- list.files(
-    path = directory,
-    pattern = pattern,
-    full.names = TRUE,
-    ignore.case = TRUE
-  )
-
-  files <- files[!startsWith(basename(files), "~$")]
-
-  if (length(files) == 0) {
-    stop(
-      paste0(
-        "No ", description, " was found in:\n",
-        directory
-      ),
-      call. = FALSE
-    )
-  }
-
-  if (length(files) > 1) {
-    stop(
-      paste0(
-        "More than one ", description, " was found:\n",
-        paste(files, collapse = "\n"),
-        "\nKeep exactly one final input workbook in data/curated."
-      ),
-      call. = FALSE
-    )
-  }
-
-  normalizePath(files, winslash = "/", mustWork = TRUE)
-}
-
-
-repository_root <- find_repository_root()
-curated_directory <- file.path(repository_root, "data", "curated")
-
-manual_path <- find_single_input(
-  directory = curated_directory,
-  pattern = "^cristae_manual.*\\.xlsx$",
-  description = "manual cristae workbook"
+out_dir <- file.path(
+  "results",
+  "derived"
 )
 
-automated_path <- find_single_input(
-  directory = curated_directory,
-  pattern = "^cristae_automated.*\\.xlsx$",
-  description = "automated cristae workbook"
+if (!dir.exists(out_dir)) {
+  dir.create(
+    out_dir,
+    recursive = TRUE
+  )
+}
+
+out_file <- file.path(
+  out_dir,
+  "Prism_input.xlsx"
 )
 
-output_directory <- file.path(repository_root, "results", "derived")
-dir.create(output_directory, recursive = TRUE, showWarnings = FALSE)
 
-output_path <- file.path(output_directory, "Prism_input.xlsx")
-
-message("Manual workbook:    ", manual_path)
-message("Automated workbook: ", automated_path)
-message("Output workbook:    ", output_path)
-
-
-# -----------------------------------------------------------------------------
-# 3. Normalize group and subject identifiers
-# -----------------------------------------------------------------------------
-
-normalize_group <- function(sheet_name) {
-  dplyr::case_when(
-    stringr::str_detect(
-      sheet_name,
-      stringr::regex("^Ctrl", ignore_case = TRUE)
-    ) ~ "Ctrl",
-    TRUE ~ sheet_name
-  )
-}
-
-
-derive_subject_id <- function(group, image_id) {
-  dplyr::case_when(
-    group == "Ctrl" & stringr::str_detect(image_id, "^C1_") ~ "C1",
-    group == "Ctrl" & stringr::str_detect(image_id, "^C2_") ~ "C2",
-    group != "Ctrl" ~ group,
-    TRUE ~ NA_character_
-  )
-}
-
-
-# -----------------------------------------------------------------------------
-# 4. Parse one worksheet
-# -----------------------------------------------------------------------------
+# ---------- 3) funkce pro parsovani jednoho listu ----------
 
 parse_sheet <- function(path, sheet_name) {
-  raw_sheet <- readxl::read_excel(
+
+  x <- read_excel(
     path,
     sheet = sheet_name,
-    col_names = FALSE,
-    .name_repair = "minimal"
+    col_names = FALSE
   )
 
-  if (nrow(raw_sheet) == 0) {
-    return(tibble::tibble())
-  }
+  n <- nrow(x)
 
-  if (ncol(raw_sheet) < 13) {
-    stop(
-      paste0(
-        "Worksheet '", sheet_name,
-        "' in ", basename(path),
-        " has fewer than 13 columns."
-      ),
-      call. = FALSE
-    )
+  if (n == 0) {
+    return(tibble())
   }
 
   current_image <- NA_character_
-  parsed_rows <- vector("list", length = 0)
+  out <- vector("list", length = 0)
 
-  for (row_index in seq_len(nrow(raw_sheet))) {
-    image_cell <- raw_sheet[[1]][row_index]
-    mitochondrion_cell <- raw_sheet[[2]][row_index]
+  for (i in seq_len(n)) {
 
-    image_text <- ifelse(
-      is.na(image_cell),
+    # sloupec A = Slice / image_id
+    a <- x[[1]][i]
+
+    # sloupec B = Number of mito
+    b <- x[[2]][i]
+
+    a_str <- ifelse(
+      is.na(a),
       "",
-      stringr::str_trim(as.character(image_cell))
+      as.character(a)
     )
 
-    # Start of a new table block.
-    if (tolower(image_text) == "slice") {
+    a_str_trim <- str_trim(a_str)
+
+    # preskoc header radek bloku
+    if (tolower(a_str_trim) == "slice") {
       current_image <- NA_character_
       next
     }
 
-    mitochondrion_id <- suppressWarnings(
-      as.numeric(mitochondrion_cell)
+    # mito radek = ve sloupci B je cislo
+    b_num <- suppressWarnings(
+      as.numeric(b)
     )
 
-    # A data row is identified by a numeric mitochondrion ID in column B.
-    if (is.na(mitochondrion_id)) {
-      next
-    }
+    if (!is.na(b_num)) {
 
-    if (image_text != "") {
-      current_image <- image_text
-    }
-
-    if (is.na(current_image) || current_image == "") {
-      next
-    }
-
-  label_values <- vapply(
-    3:13,
-    function(column_index) {
-      cell_value <- raw_sheet[[column_index]][row_index]
-
-      numeric_value <- suppressWarnings(
-        as.numeric(as.character(cell_value))
-      )
-
-      if (is.na(numeric_value)) {
-        return(0)
+      # pokud je v A na tomto radku image ID, uloz ho
+      if (a_str_trim != "") {
+        current_image <- a_str_trim
       }
 
-      numeric_value
-    },
-    numeric(1)
-  )
+      # pokud image ID neni zname, tento radek preskoc
+      if (
+        is.na(current_image) ||
+        current_image == ""
+      ) {
+        next
+      }
 
-    parsed_rows[[length(parsed_rows) + 1]] <- tibble::tibble(
-      source_sheet = sheet_name,
-      image_id = current_image,
-      workbook_row = row_index,
-      mitochondrion_id = mitochondrion_id,
-      mitochondrion_total = sum(label_values),
-      label_2 = label_values[1],
-      label_3 = label_values[2],
-      label_4 = label_values[3],
-      label_5 = label_values[4],
-      label_6 = label_values[5],
-      label_7 = label_values[6],
-      label_8 = label_values[7],
-      label_9 = label_values[8],
-      label_10 = label_values[9],
-      label_11 = label_values[10],
-      label_12 = label_values[11]
-    )
+      # labely jsou v C:M = sloupce 3:13
+      lab <- x[i, 3:13] |>
+        unlist(use.names = FALSE)
+
+      lab_num <- suppressWarnings(
+        as.numeric(lab)
+      )
+
+      lab_num[is.na(lab_num)] <- 0
+
+      out[[length(out) + 1]] <- tibble(
+        group = sheet_name,
+        image_id = current_image,
+        mito_row = i,
+        mito_id = b_num,
+        mito_total = sum(lab_num),
+        label_2 = lab_num[1],
+        label_3 = lab_num[2],
+        label_4 = lab_num[3],
+        label_5 = lab_num[4],
+        label_6 = lab_num[5],
+        label_7 = lab_num[6],
+        label_8 = lab_num[7],
+        label_9 = lab_num[8],
+        label_10 = lab_num[9],
+        label_11 = lab_num[10],
+        label_12 = lab_num[11]
+      )
+    }
   }
 
-  if (length(parsed_rows) == 0) {
-    return(tibble::tibble())
+  if (length(out) == 0) {
+    return(tibble())
   }
 
-  dplyr::mutate(
-    group = normalize_group(source_sheet),
-    disease_status = dplyr::if_else(
-      group == "Ctrl",
-      "Ctrl",
-      "HD"
-    ),
-    subject_id = derive_subject_id(group, image_id)
-  ) |>
-    dplyr::relocate(
-      group,
-      disease_status,
-      subject_id,
-      image_id
-    )
+  bind_rows(out)
 }
 
 
-# -----------------------------------------------------------------------------
-# 5. Parse and summarize one workbook
-# -----------------------------------------------------------------------------
+# ---------- 4) funkce pro souhrn celeho workbooku ----------
 
 summarize_workbook <- function(path) {
-  sheets <- readxl::excel_sheets(path)
 
-  per_mitochondrion <- lapply(
-    sheets,
-    function(sheet_name) parse_sheet(path, sheet_name)
+  sh <- excel_sheets(path)
+
+  per_mito <- lapply(
+    sh,
+    function(s) parse_sheet(path, s)
   ) |>
-    dplyr::bind_rows()
+    bind_rows()
 
-  if (nrow(per_mitochondrion) == 0) {
-    stop(
-      paste0("No mitochondrial data rows were found in ", basename(path)),
-      call. = FALSE
-    )
+  if (nrow(per_mito) == 0) {
+    return(tibble())
   }
 
-  invalid_control_subjects <- per_mitochondrion |>
-    dplyr::filter(
-      group == "Ctrl",
-      is.na(subject_id) | !subject_id %in% c("C1", "C2")
-    )
-
-  if (nrow(invalid_control_subjects) > 0) {
-    print(
-      invalid_control_subjects |>
-        dplyr::distinct(source_sheet, image_id, subject_id)
-    )
-
-    stop(
-      "At least one control image could not be assigned to subject C1 or C2.",
-      call. = FALSE
-    )
-  }
-
-  per_image <- per_mitochondrion |>
-    dplyr::group_by(
+  per_image <- per_mito |>
+    group_by(
       group,
-      disease_status,
-      subject_id,
       image_id
     ) |>
-    dplyr::summarise(
-      n_mito = dplyr::n(),
-      total = sum(mitochondrion_total),
+    summarise(
+      # pocet mitochondrii = pocet platnych mito radku
+      n_mito = n(),
+
+      # celkovy pocet crist v obrazku
+      total = sum(mito_total),
+
+      # prumerny pocet crist na mitochondrii
       mean_per_mito = total / n_mito,
+
       label_2 = sum(label_2),
       label_3 = sum(label_3),
       label_4 = sum(label_4),
@@ -361,231 +252,184 @@ summarize_workbook <- function(path) {
       label_10 = sum(label_10),
       label_11 = sum(label_11),
       label_12 = sum(label_12),
+
       .groups = "drop"
     )
 
-  list(
-    per_mitochondrion = per_mitochondrion,
-    per_image = per_image
-  )
+  per_image
 }
 
 
-message("Reading manual workbook...")
-manual_data <- summarize_workbook(manual_path)
+# ---------- 5) nacti a spocitej oba excely ----------
 
-message("Reading automated workbook...")
-automated_data <- summarize_workbook(automated_path)
+cat("Zpracovavam strojovy excel.\n")
 
-
-# -----------------------------------------------------------------------------
-# 6. Prepare paired image-level data
-# -----------------------------------------------------------------------------
-
-manual_images <- manual_data$per_image |>
-  dplyr::rename_with(
-    function(column_name) paste0("manual_", column_name),
-    -dplyr::all_of(c("group", "disease_status", "subject_id", "image_id"))
+auto_img <- summarize_workbook(auto_path) |>
+  rename(
+    auto_n_mito = n_mito,
+    auto_total = total,
+    auto_mean_per_mito = mean_per_mito,
+    auto_label_2 = label_2,
+    auto_label_3 = label_3,
+    auto_label_4 = label_4,
+    auto_label_5 = label_5,
+    auto_label_6 = label_6,
+    auto_label_7 = label_7,
+    auto_label_8 = label_8,
+    auto_label_9 = label_9,
+    auto_label_10 = label_10,
+    auto_label_11 = label_11,
+    auto_label_12 = label_12
   )
 
-automated_images <- automated_data$per_image |>
-  dplyr::rename_with(
-    function(column_name) paste0("auto_", column_name),
-    -dplyr::all_of(c("group", "disease_status", "subject_id", "image_id"))
+cat("Zpracovavam rucni excel.\n")
+
+man_img <- summarize_workbook(man_path) |>
+  rename(
+    manual_n_mito = n_mito,
+    manual_total = total,
+    manual_mean_per_mito = mean_per_mito,
+    manual_label_2 = label_2,
+    manual_label_3 = label_3,
+    manual_label_4 = label_4,
+    manual_label_5 = label_5,
+    manual_label_6 = label_6,
+    manual_label_7 = label_7,
+    manual_label_8 = label_8,
+    manual_label_9 = label_9,
+    manual_label_10 = label_10,
+    manual_label_11 = label_11,
+    manual_label_12 = label_12
   )
 
-join_columns <- c(
-  "group",
-  "disease_status",
-  "subject_id",
-  "image_id"
-)
 
-missing_in_automated <- dplyr::anti_join(
-  manual_images,
-  automated_images,
-  by = join_columns
-)
+# ---------- 6) spojeni manual vs auto ----------
 
-missing_in_manual <- dplyr::anti_join(
-  automated_images,
-  manual_images,
-  by = join_columns
-)
-
-if (nrow(missing_in_automated) > 0) {
-  print(
-    missing_in_automated |>
-      dplyr::select(dplyr::all_of(join_columns))
+compare <- full_join(
+  man_img,
+  auto_img,
+  by = c(
+    "group",
+    "image_id"
   )
-
-  stop(
-    "Some manual images are missing from the automated workbook.",
-    call. = FALSE
-  )
-}
-
-if (nrow(missing_in_manual) > 0) {
-  print(
-    missing_in_manual |>
-      dplyr::select(dplyr::all_of(join_columns))
-  )
-
-  stop(
-    "Some automated images are missing from the manual workbook.",
-    call. = FALSE
-  )
-}
-
-compare_images <- dplyr::inner_join(
-  manual_images,
-  automated_images,
-  by = join_columns
-)
-
-expected_group_order <- c(
-  "Ctrl",
-  paste0("P", 1:10)
-)
-
-compare_images <- compare_images |>
-  dplyr::mutate(
-    .group_order = match(group, expected_group_order)
-  ) |>
-  dplyr::arrange(.group_order, subject_id, image_id) |>
-  dplyr::select(-.group_order)
-
-
-# -----------------------------------------------------------------------------
-# 7. Mandatory QC checks
-# -----------------------------------------------------------------------------
-
-if (nrow(compare_images) != 100) {
-  stop(
-    paste0(
-      "Expected 100 paired images, but found ",
-      nrow(compare_images),
-      "."
-    ),
-    call. = FALSE
-  )
-}
-
-mitochondria_mismatch <- compare_images |>
-  dplyr::filter(manual_n_mito != auto_n_mito) |>
-  dplyr::select(
+) |>
+  arrange(
     group,
-    subject_id,
+    image_id
+  )
+
+
+# ---------- 6a) QC listy ----------
+
+qc_missing_in_auto <- compare |>
+  filter(is.na(auto_total)) |>
+  select(
+    group,
     image_id,
-    manual_n_mito,
-    auto_n_mito
+    manual_total
   )
 
-if (nrow(mitochondria_mismatch) > 0) {
-  print(mitochondria_mismatch)
-
-  stop(
-    "Manual and automated mitochondrion counts do not match for all images.",
-    call. = FALSE
+qc_missing_in_manual <- compare |>
+  filter(is.na(manual_total)) |>
+  select(
+    group,
+    image_id,
+    auto_total
   )
-}
 
-if (
-  any(compare_images$manual_n_mito <= 0) ||
-  any(compare_images$auto_n_mito <= 0)
-) {
-  stop(
-    "At least one image has a non-positive mitochondrion count.",
-    call. = FALSE
+
+# pouze sparovane radky pro Prism
+compare_paired <- compare |>
+  filter(
+    !is.na(manual_total) &
+      !is.na(auto_total)
   )
-}
 
 
-# -----------------------------------------------------------------------------
-# 8. Prepare Prism and analysis sheets
-# -----------------------------------------------------------------------------
+# ---------- 7) listy pro Prism ----------
 
-BA_total <- compare_images |>
-  dplyr::select(
+BA_total <- compare_paired |>
+  select(
     manual_total,
     auto_total
   )
 
-Scatter_total <- compare_images |>
-  dplyr::transmute(
-    image_id,
+Scatter_total <- compare_paired |>
+  transmute(
+    image_id = image_id,
     X_manual_total = manual_total,
     Y_auto_total = auto_total
   )
 
-BA_mean_per_mito <- compare_images |>
-  dplyr::select(
+BA_mean_per_mito <- compare_paired |>
+  select(
     manual_mean_per_mito,
     auto_mean_per_mito
   )
 
-Scatter_mean_per_mito <- compare_images |>
-  dplyr::transmute(
-    image_id,
+Scatter_mean_per_mito <- compare_paired |>
+  transmute(
+    image_id = image_id,
     X_manual_mean_per_mito = manual_mean_per_mito,
     Y_auto_mean_per_mito = auto_mean_per_mito
   )
 
-BA_label_totals <- compare_images |>
-  dplyr::select(
+# labelove soucty po obrazcich
+BA_label_totals <- compare_paired |>
+  select(
     image_id,
     group,
-    subject_id,
-    dplyr::starts_with("manual_label_"),
-    dplyr::starts_with("auto_label_")
+    starts_with("manual_label_"),
+    starts_with("auto_label_")
   )
 
-QC_summary <- tibble::tibble(
-  check = c(
-    "paired_images",
-    "manual_mitochondria",
-    "automated_mitochondria",
-    "mitochondrion_count_mismatches",
-    "manual_total_cristae",
-    "automated_total_cristae"
-  ),
-  value = as.character(
-    c(
-      nrow(compare_images),
-      sum(compare_images$manual_n_mito),
-      sum(compare_images$auto_n_mito),
-      nrow(mitochondria_mismatch),
-      sum(compare_images$manual_total),
-      sum(compare_images$auto_total)
-    )
-  )
-)
 
+# ---------- 8) export ----------
 
-# -----------------------------------------------------------------------------
-# 9. Export
-# -----------------------------------------------------------------------------
-
-writexl::write_xlsx(
+write_xlsx(
   list(
-    compare_images = compare_images,
-    manual_per_mito = manual_data$per_mitochondrion,
-    auto_per_mito = automated_data$per_mitochondrion,
+    compare_images = compare,
     BA_total = BA_total,
     Scatter_total = Scatter_total,
     BA_mean_per_mito = BA_mean_per_mito,
     Scatter_mean_per_mito = Scatter_mean_per_mito,
     BA_label_totals = BA_label_totals,
-    QC_summary = QC_summary,
-    QC_n_mito_mismatch = mitochondria_mismatch
+    QC_missing_in_auto = qc_missing_in_auto,
+    QC_missing_in_manual = qc_missing_in_manual
   ),
-  path = output_path
+  path = out_file
 )
 
-message("")
-message("Preparation completed successfully.")
-message("Paired images: ", nrow(compare_images))
-message("Mitochondria per method: ", sum(compare_images$manual_n_mito))
-message("Manual cristae: ", sum(compare_images$manual_total))
-message("Automated cristae: ", sum(compare_images$auto_total))
-message("Output: ", output_path)
+
+# ---------- 9) zaverecny vypis ----------
+
+cat("\nHOTOVO.\n")
+cat(
+  "Vystupni soubor byl ulozen sem:\n",
+  out_file,
+  "\n"
+)
+
+cat(
+  "Pocet radku v compare_images:",
+  nrow(compare),
+  "\n"
+)
+
+cat(
+  "Pocet sparovanych obrazku:",
+  nrow(compare_paired),
+  "\n"
+)
+
+cat(
+  "Obrazky chybejici v Automated:",
+  nrow(qc_missing_in_auto),
+  "\n"
+)
+
+cat(
+  "Obrazky chybejici v Manual:",
+  nrow(qc_missing_in_manual),
+  "\n"
+)
