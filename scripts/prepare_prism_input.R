@@ -241,11 +241,23 @@ parse_sheet <- function(path, sheet_name) {
       next
     }
 
-    label_values <- raw_sheet[row_index, 3:13] |>
-      unlist(use.names = FALSE) |>
-      suppressWarnings(as.numeric())
+  label_values <- vapply(
+    3:13,
+    function(column_index) {
+      cell_value <- raw_sheet[[column_index]][row_index]
 
-    label_values[is.na(label_values)] <- 0
+      numeric_value <- suppressWarnings(
+        as.numeric(as.character(cell_value))
+      )
+
+      if (is.na(numeric_value)) {
+        return(0)
+      }
+
+      numeric_value
+    },
+    numeric(1)
+  )
 
     parsed_rows[[length(parsed_rows) + 1]] <- tibble::tibble(
       source_sheet = sheet_name,
