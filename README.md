@@ -284,11 +284,23 @@ Before any research-derived tables are released, they will be reviewed for:
 
 ## Citation
 
-The associated research article is intended to be the preferred citation.
+Software citation metadata are provided in the root-level
+[`CITATION.cff`](CITATION.cff) file.
 
-Its final bibliographic metadata and DOI are not yet available and are therefore not included here.
+The associated research article is intended to be the preferred scientific
+citation once its final bibliographic metadata are available.
 
-`metadata/CITATION.cff.template` will be completed and renamed to `CITATION.cff` only after the author list, software version, release date, article citation, and DOI metadata have been verified.
+The following information will be added after verification and formal release:
+
+- software version;
+- release date;
+- verified author affiliations;
+- article title, journal, publication year, and DOI;
+- Zenodo version DOI and concept DOI.
+
+Verified ORCID identifiers are included in `CITATION.cff`.
+
+No article, software, or Zenodo DOI is currently claimed.
 
 ## License
 
