@@ -1,0 +1,88 @@
+name: Test total cristae analysis
+
+on:
+  pull_request:
+    paths:
+      - "scripts/prepare_prism_input.R"
+      - "scripts/analyze-total-cristae"
+      - "data/curated/**"
+      - ".github/workflows/r-total-cristae.yml"
+
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/prepare_prism_input.R"
+      - "scripts/analyze-total-cristae"
+      - "data/curated/**"
+      - ".github/workflows/r-total-cristae.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  total-cristae-analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install required R packages
+        run: |
+          Rscript -e '
+            install.packages(
+              c(
+                "readxl",
+                "dplyr",
+                "tidyr",
+                "stringr",
+                "ggplot2",
+                "glmmTMB",
+                "DHARMa",
+                "emmeans",
+                "writexl",
+                "tibble",
+                "coin"
+              )
+            )
+          '
+
+      - name: Generate Prism input
+        run: |
+          Rscript scripts/prepare_prism_input.R
+
+      - name: Verify Prism input
+        run: |
+          test -f results/derived/Prism_input.xlsx
+
+      - name: Run total cristae analysis
+        run: |
+          Rscript scripts/analyze-total-cristae
+
+      - name: Verify statistical outputs
+        run: |
+          test -f results/derived/stats_total_cristae/01_long_data.xlsx
+          test -f results/derived/stats_total_cristae/02_DHARMa_diagnostics_NB.pdf
+          test -f results/derived/stats_total_cristae/03_subject_level_cristae_per_mito.png
+          test -f results/derived/stats_total_cristae/04_image_level_cristae_per_mito.png
+          test -f results/derived/stats_total_cristae/05_statistical_results.xlsx
+          test -f results/derived/stats_total_cristae/06_model_output.txt
+
+      - name: Upload total cristae results
+        uses: actions/upload-artifact@v4
+        with:
+          name: total-cristae-analysis-results
+          path: |
+            results/derived/Prism_input.xlsx
+            results/derived/stats_total_cristae/**
+          if-no-files-found: error
+          retention-days: 14
