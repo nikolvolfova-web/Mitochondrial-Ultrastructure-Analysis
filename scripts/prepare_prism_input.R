@@ -21,8 +21,30 @@
 #   - QC_missing_in_manual
 # =========================================================
 
+# WORKFLOW OVERVIEW
+# -----------------
+# The source workbooks contain repeated image blocks. Within each block, the
+# image identifier is written in column A and is followed by one or more
+# mitochondrion-level rows. Column B identifies valid mitochondrion rows, while
+# columns C:M contain counts for cristae classes 2-12.
+#
+# The script performs two aggregation levels:
+#   1. mitochondrion level: one parsed row per valid mitochondrion;
+#   2. image level: counts are summed across all mitochondria in an image.
+#
+# Manual and automated image-level tables are joined by both `group` and
+# `image_id`. The complete joined table is retained for quality control, while
+# Prism-specific worksheets contain only images present in both methods.
+#
+# IMPORTANT DATA ASSUMPTION
+# -------------------------
+# Non-numeric or empty class-count cells in columns C:M are interpreted as zero.
+# This is appropriate only when an empty class cell means that no cristae of the
+# corresponding class were observed. It should not be used for unknown or
+# genuinely missing measurements.
 
-# ---------- 0) instalace chybejicich balicku ----------
+
+# ---------- 0) install missing packages ----------
 
 needed_pkgs <- c(
   "readxl",
@@ -45,7 +67,7 @@ if (length(to_install) > 0) {
 }
 
 
-# ---------- 1) nacteni balicku ----------
+# ---------- 1) load required packages ----------
 
 library(readxl)
 library(dplyr)
@@ -55,7 +77,7 @@ library(writexl)
 library(tibble)
 
 
-# ---------- 2) cesty k souborum v repozitari ----------
+# ---------- 2) define repository input and output paths ----------
 
 auto_path <- file.path(
   "data",
@@ -89,8 +111,8 @@ if (!file.exists(man_path)) {
   )
 }
 
-cat("Strojovy soubor:\n", auto_path, "\n\n")
-cat("Rucni soubor:\n", man_path, "\n\n")
+cat("Automated workbook:\n", auto_path, "\n\n")
+cat("Manual workbook:\n", man_path, "\n\n")
 
 out_dir <- file.path(
   "results",
@@ -110,8 +132,36 @@ out_file <- file.path(
 )
 
 
-# ---------- 3) funkce pro parsovani jednoho listu ----------
+# ---------- 3) parse one worksheet into mitochondrion-level rows ----------
 
+#' Parse one worksheet into mitochondrion-level observations
+#'
+#' Reads a worksheet without assuming a conventional single-row header. The
+#' function tracks the most recently encountered image identifier in column A
+#' and assigns subsequent numeric mitochondrion rows to that image. A row is
+#' accepted only when column B can be converted to a numeric mitochondrion ID.
+#'
+#' Cristae class counts are read from columns C:M and mapped to classes 2-12.
+#' Empty or non-numeric class cells are converted to zero before row totals are
+#' calculated.
+#'
+#' @param path Character scalar. Path to the source Excel workbook.
+#' @param sheet_name Character scalar. Name of the worksheet to parse. The
+#'   worksheet name is also retained as the experimental `group` identifier.
+#'
+#' @return A tibble with one row per valid mitochondrion and the columns
+#'   `group`, `image_id`, `mito_row`, `mito_id`, `mito_total`, and
+#'   `label_2` through `label_12`. An empty tibble is returned when the sheet
+#'   contains no valid mitochondrion rows.
+#'
+#' @details Rows whose first cell is `Slice` are interpreted as block headers
+#'   and reset the active image identifier. A numeric value in column B defines
+#'   a mitochondrion row. If such a row appears before a valid image identifier
+#'   has been found, the row is skipped to prevent assignment to the wrong image.
+#'
+#' @note Replacing non-numeric class cells with zero assumes that missing cells
+#'   mean an observed count of zero rather than an unavailable measurement.
+#'
 parse_sheet <- function(path, sheet_name) {
 
   x <- read_excel(
@@ -131,10 +181,10 @@ parse_sheet <- function(path, sheet_name) {
 
   for (i in seq_len(n)) {
 
-    # sloupec A = Slice / image_id
+    # Column A contains either the block header (`Slice`) or an image ID.
     a <- x[[1]][i]
 
-    # sloupec B = Number of mito
+    # Column B contains the mitochondrion identifier for valid data rows.
     b <- x[[2]][i]
 
     a_str <- ifelse(
@@ -145,25 +195,25 @@ parse_sheet <- function(path, sheet_name) {
 
     a_str_trim <- str_trim(a_str)
 
-    # preskoc header radek bloku
+    # A `Slice` row starts a new block and resets the active image ID.
     if (tolower(a_str_trim) == "slice") {
       current_image <- NA_character_
       next
     }
 
-    # mito radek = ve sloupci B je cislo
+    # A row is treated as a mitochondrion row only when column B is numeric.
     b_num <- suppressWarnings(
       as.numeric(b)
     )
 
     if (!is.na(b_num)) {
 
-      # pokud je v A na tomto radku image ID, uloz ho
+      # Update the active image ID when column A contains a non-empty value.
       if (a_str_trim != "") {
         current_image <- a_str_trim
       }
 
-      # pokud image ID neni zname, tento radek preskoc
+      # Discard rows that cannot be assigned to a known image.
       if (
         is.na(current_image) ||
         current_image == ""
@@ -171,7 +221,7 @@ parse_sheet <- function(path, sheet_name) {
         next
       }
 
-      # labely jsou v C:M = sloupce 3:13
+      # Columns C:M contain counts for cristae classes 2 through 12.
       lab <- x[i, 3:13] |>
         unlist(use.names = FALSE)
 
@@ -210,8 +260,24 @@ parse_sheet <- function(path, sheet_name) {
 }
 
 
-# ---------- 4) funkce pro souhrn celeho workbooku ----------
+# ---------- 4) aggregate all worksheets to one row per image ----------
 
+#' Summarize an entire workbook at image level
+#'
+#' Applies [parse_sheet()] to every worksheet, combines all mitochondrion-level
+#' observations, and aggregates them by worksheet-derived group and image ID.
+#'
+#' @param path Character scalar. Path to a manual or automated source workbook.
+#'
+#' @return A tibble with one row per unique `group` and `image_id`. The output
+#'   contains the number of parsed mitochondria, the total cristae count, the
+#'   pooled number of cristae per mitochondrion, and class-specific totals for
+#'   classes 2-12. An empty tibble is returned when no valid rows are found.
+#'
+#' @details `mean_per_mito` is calculated as `sum(mito_total) / n_mito`. It is
+#'   therefore the pooled cristae rate for the complete image, not an average of
+#'   separately rounded values.
+#'
 summarize_workbook <- function(path) {
 
   sh <- excel_sheets(path)
@@ -232,13 +298,13 @@ summarize_workbook <- function(path) {
       image_id
     ) |>
     summarise(
-      # pocet mitochondrii = pocet platnych mito radku
+      # Number of mitochondria equals the number of valid parsed rows.
       n_mito = n(),
 
-      # celkovy pocet crist v obrazku
+      # Total cristae count summed across all mitochondria in the image.
       total = sum(mito_total),
 
-      # prumerny pocet crist na mitochondrii
+      # Image-level rate: total cristae divided by the number of mitochondria.
       mean_per_mito = total / n_mito,
 
       label_2 = sum(label_2),
@@ -260,9 +326,9 @@ summarize_workbook <- function(path) {
 }
 
 
-# ---------- 5) nacti a spocitej oba excely ----------
+# ---------- 5) parse and aggregate the automated and manual workbooks ----------
 
-cat("Zpracovavam strojovy excel.\n")
+cat("Processing the automated workbook.\n")
 
 auto_img <- summarize_workbook(auto_path) |>
   rename(
@@ -282,7 +348,7 @@ auto_img <- summarize_workbook(auto_path) |>
     auto_label_12 = label_12
   )
 
-cat("Zpracovavam rucni excel.\n")
+cat("Processing the manual workbook.\n")
 
 man_img <- summarize_workbook(man_path) |>
   rename(
@@ -303,7 +369,7 @@ man_img <- summarize_workbook(man_path) |>
   )
 
 
-# ---------- 6) spojeni manual vs auto ----------
+# ---------- 6) join manual and automated image-level results ----------
 
 compare <- full_join(
   man_img,
@@ -319,7 +385,7 @@ compare <- full_join(
   )
 
 
-# ---------- 6a) QC listy ----------
+# ---------- 6a) identify images missing from either method ----------
 
 qc_missing_in_auto <- compare |>
   filter(is.na(auto_total)) |>
@@ -338,7 +404,7 @@ qc_missing_in_manual <- compare |>
   )
 
 
-# pouze sparovane radky pro Prism
+# Prism comparison tables require paired images measured by both methods.
 compare_paired <- compare |>
   filter(
     !is.na(manual_total) &
@@ -346,7 +412,7 @@ compare_paired <- compare |>
   )
 
 
-# ---------- 7) listy pro Prism ----------
+# ---------- 7) construct Prism-ready worksheets ----------
 
 BA_total <- compare_paired |>
   select(
@@ -374,7 +440,7 @@ Scatter_mean_per_mito <- compare_paired |>
     Y_auto_mean_per_mito = auto_mean_per_mito
   )
 
-# labelove soucty po obrazcich
+# Image-level class totals for method-specific Bland-Altman analyses.
 BA_label_totals <- compare_paired |>
   select(
     image_id,
@@ -384,7 +450,7 @@ BA_label_totals <- compare_paired |>
   )
 
 
-# ---------- 8) export ----------
+# ---------- 8) export the combined workbook ----------
 
 write_xlsx(
   list(
@@ -401,35 +467,35 @@ write_xlsx(
 )
 
 
-# ---------- 9) zaverecny vypis ----------
+# ---------- 9) print a concise run summary ----------
 
-cat("\nHOTOVO.\n")
+cat("\nCOMPLETED.\n")
 cat(
-  "Vystupni soubor byl ulozen sem:\n",
+  "Output workbook was saved to:\n",
   out_file,
   "\n"
 )
 
 cat(
-  "Pocet radku v compare_images:",
+  "Rows in compare_images:",
   nrow(compare),
   "\n"
 )
 
 cat(
-  "Pocet sparovanych obrazku:",
+  "Paired images:",
   nrow(compare_paired),
   "\n"
 )
 
 cat(
-  "Obrazky chybejici v Automated:",
+  "Images missing from Automated:",
   nrow(qc_missing_in_auto),
   "\n"
 )
 
 cat(
-  "Obrazky chybejici v Manual:",
+  "Images missing from Manual:",
   nrow(qc_missing_in_manual),
   "\n"
 )
