@@ -1,275 +1,183 @@
 # Data Directory
 
-This directory is reserved for documented, reviewed, and release-appropriate data files associated with the mitochondrial ultrastructure analysis workflow.
+This directory contains the reviewed analytical inputs and processed tabular
+outputs used by the mitochondrial ultrastructure analysis workflows.
 
-The original research workbooks, microscopy data, intermediate analytical files, and unpublished results are not currently included in this repository.
+The repository is currently maintained as a private pre-release repository.
+Inclusion of a file here does not by itself mean that the file has been
+approved for unrestricted public redistribution.
 
-## Data provenance summary
-
-The study contains two measurement branches:
-
-1. **Manual measurements** recorded directly in a manually prepared Excel workbook.
-2. **Automated measurements** derived from Empanada segmentation outputs and processed using the Python preprocessing workflow.
-
-Relevant values from the Python-generated CSV outputs were manually transferred into an automated Excel workbook structured to match the manual workbook.
-
-The manual and automated workbooks were then used in the downstream R workflows.
-
-See [`docs/DATA_PROVENANCE.md`](../docs/DATA_PROVENANCE.md) for the complete provenance description.
-
-## Directory policy
-
-Only files that have passed a release review may be committed under `data/`.
-
-Before inclusion, every research-derived file must be reviewed for:
-
-* subject and sample identifiers;
-* image and acquisition filenames;
-* local filesystem paths;
-* worksheet and document metadata;
-* hidden worksheets, rows, or columns;
-* formulas and external links;
-* personal or confidential information;
-* unpublished results;
-* licensing and consent restrictions;
-* consistency with the associated manuscript;
-* sufficient documentation of provenance and schema.
-
-## Files not currently included
-
-The following files must remain outside the repository until explicitly reviewed and approved:
-
-* original manual Excel workbook;
-* original automated Excel workbook;
-* original combined Prism input;
-* raw or processed microscopy images;
-* segmentation masks;
-* complete Python output directories;
-* per-image research CSV files;
-* unpublished statistical tables;
-* unpublished figures;
-* manuscript drafts;
-* files containing real names or identifying information;
-* files containing internal paths or credentials.
-
-These files should be stored in a protected research-data location rather than in the Git working directory.
-
-## Private local data
-
-Local research files may be organized outside the public repository using a structure such as:
-
-```text
-private_validation_data/
-├── manual_workbook/
-├── automated_workbook/
-├── python_csv_outputs/
-├── original_prism_input/
-├── original_r_outputs/
-└── manuscript_reference/
-```
-
-This directory name is illustrative. The actual protected location must not be committed to Git.
-
-The repository `.gitignore` should exclude any local private-data directory used during validation.
-
-## Potential future repository contents
-
-After validation and release review, this directory may contain selected files such as:
+## Directory structure
 
 ```text
 data/
-├── README.md
-├── schemas/
-│   ├── manual_workbook_schema.csv
-│   ├── automated_workbook_schema.csv
-│   └── prism_input_schema.csv
-├── examples/
-│   └── synthetic_example_data.csv
-└── reference/
-    └── pseudonymized_release_table.csv
+├── curated/
+│   ├── cristae_automated.xlsx
+│   └── cristae_manual.xlsx
+├── processed/
+│   └── python/
+│       ├── all_cristae_instances.csv
+│       ├── cristae_counts_image_summary.csv
+│       └── cristae_counts_per_mito.csv
+└── README.md
 ```
 
-The inclusion of these files is not guaranteed. Each file must be evaluated separately.
+## Curated analytical workbooks
 
-## Preferred public data types
-
-Where possible, the repository should prefer:
-
-* synthetic test fixtures;
-* empty schema templates;
-* column dictionaries;
-* pseudonymized and publication-compatible summary tables;
-* machine-readable validation reports;
-* small example datasets created specifically for documentation.
-
-Synthetic or example data must be clearly labelled and must not be presented as original research observations.
-
-## Python outputs
-
-The Python preprocessing script may generate:
-
-* per-image CSV files;
-* summary CSV files;
-* instance-level quality-control tables;
-* label images;
-* image overlays;
-* run logs.
-
-Generated outputs should initially be written to a protected location:
+### Manual workbook
 
 ```text
-<PROTECTED_OUTPUT_DIRECTORY>
+data/curated/cristae_manual.xlsx
 ```
 
-They must not be committed automatically.
+This workbook contains the curated measurements from the manual evaluation
+branch.
 
-Before any Python-derived table is added to the repository, verify:
+The manual measurements were recorded directly in the workbook and did not
+pass through the Python preprocessing workflow.
 
-* filename and identifier pseudonymization;
-* absence of absolute local paths;
-* absence of confidential metadata;
-* correspondence with the documented Python run;
-* correspondence with the automated Excel workbook where applicable;
-* relevance to reproducibility;
-* appropriate licensing.
-
-## Excel workbooks
-
-The original Excel workbooks are analytical source files and are not currently public repository assets.
-
-Before considering release of any workbook, inspect:
-
-* all worksheets;
-* hidden worksheets;
-* hidden rows and columns;
-* formulas;
-* named ranges;
-* comments and notes;
-* external links;
-* workbook properties;
-* author and organization metadata;
-* revision information;
-* file paths;
-* subject and sample identifiers.
-
-Where practical, a reviewed CSV or other non-proprietary tabular export may be preferable to releasing the original workbook.
-
-Any released export must be compared with the source workbook to confirm that values, missing data, identifiers, units, and categorical levels remain correct.
-
-## Combined Prism input
-
-The combined Prism input is a derived analytical table generated from the manual and automated workbooks.
-
-The reconstructed version will be created using:
+### Automated workbook
 
 ```text
-scripts/R/prepare_prism_input.R
+data/curated/cristae_automated.xlsx
 ```
 
-The original and reconstructed Prism input files must remain private until they have been compared and reviewed.
+This workbook contains the curated analytical data used for the automated
+measurement branch.
 
-Before release, document:
+It is not a direct output of the Python script. Relevant values from the
+processed Python CSV files were transferred into the workbook, and
+mitochondrial segmentation objects were visually reviewed before downstream
+analysis.
 
-* source workbooks;
-* source worksheets;
-* required columns;
-* row-level observational unit;
-* method designation;
-* transformation rules;
-* exclusions;
-* missing-value handling;
-* output dimensions;
-* checksum or version identifier.
+Confirmed mitochondrial segmentation errors were excluded during curation.
+Valid mitochondrial profiles with zero detected cristae remained included.
 
-## File naming
+Both curated workbooks are used by the R analysis workflows.
 
-Public data filenames should:
+## Processed Python outputs
 
-* use English;
-* avoid personal names;
-* avoid internal laboratory abbreviations unless documented;
-* avoid dates that reveal internal processing history unless relevant;
-* use lowercase letters and underscores where practical;
-* clearly distinguish synthetic, example, derived, and research data.
-
-Examples:
+The following Python-generated tabular outputs are included unchanged:
 
 ```text
-synthetic_cristae_counts.csv
-manual_workbook_schema.csv
-automated_workbook_schema.csv
-reconstructed_prism_input_v1.csv
+data/processed/python/all_cristae_instances.csv
+data/processed/python/cristae_counts_per_mito.csv
+data/processed/python/cristae_counts_image_summary.csv
 ```
 
-Do not use filenames containing:
+These files were generated from upstream mitochondrial and cristae segmentation
+outputs using:
 
 ```text
-<REAL_SUBJECT_NAME>
-<LOCAL_USERNAME>
-<ABSOLUTE_PATH>
-<CONFIDENTIAL_PROJECT_CODE>
+scripts/python/count_cristae_per_mito.py
 ```
+
+They are retained as the primary computational outputs of the Python
+preprocessing step.
+
+The complete Python output directories, upstream segmentation inputs, and raw
+microscopy images are maintained outside this repository.
+
+## Data flow
+
+```mermaid
+flowchart TD
+    M["Manual cristae evaluation"] --> MW["data/curated/cristae_manual.xlsx"]
+
+    E["Empanada segmentation outputs"] --> P["scripts/python/count_cristae_per_mito.py"]
+    P --> C1["all_cristae_instances.csv"]
+    P --> C2["cristae_counts_per_mito.csv"]
+    P --> C3["cristae_counts_image_summary.csv"]
+
+    C1 --> Q["Manual transfer and visual quality control"]
+    C2 --> Q
+    C3 --> Q
+    Q --> AW["data/curated/cristae_automated.xlsx"]
+
+    MW --> R["R analysis workflows"]
+    AW --> R
+```
+
+## Files not included
+
+The repository does not contain:
+
+- raw microscopy images;
+- the complete upstream segmentation dataset;
+- complete patient-level quality-control material;
+- lookup tables connecting pseudonymous identifiers to real persons;
+- confidential manuscript files;
+- protected source metadata;
+- generated analytical results that have not been approved for inclusion.
+
+Generated R outputs belong under:
+
+```text
+results/derived/
+```
+
+They are created during local or GitHub Actions runs and are normally uploaded
+as workflow artifacts rather than committed to the repository.
+
+## Data review requirements
+
+Before any additional research-derived file is committed or publicly released,
+review it for:
+
+- subject or sample identifiers;
+- image and acquisition filenames;
+- local filesystem paths;
+- hidden worksheets, rows, or columns;
+- formulas, comments, named ranges, and external links;
+- workbook and document metadata;
+- personal or confidential information;
+- unpublished results;
+- licensing and consent restrictions;
+- consistency with the associated publication.
 
 ## Identifiers
 
-Any released research-derived data must use verified pseudonymous identifiers.
+The analytical files use pseudonymous identifiers such as control and patient
+group codes.
 
-Current intended public identifier patterns are:
+The repository must not contain a lookup table connecting these identifiers to
+real persons or confidential clinical records.
 
-```text
-C1–C2
-P1–P10
-```
-
-These patterns must be verified against the final manuscript and release dataset before publication.
-
-The repository must not contain a lookup table connecting pseudonymous identifiers to real persons or confidential records.
-
-## Validation requirement
-
-A data file may be committed only when the following information is available:
-
-| Requirement                         | Required |
-| ----------------------------------- | -------- |
-| Provenance documented               | Yes      |
-| Observational unit documented       | Yes      |
-| Columns and units documented        | Yes      |
-| Identifier audit completed          | Yes      |
-| Missing values reviewed             | Yes      |
-| Duplicate records reviewed          | Yes      |
-| Local paths removed                 | Yes      |
-| Embedded metadata reviewed          | Yes      |
-| Manuscript consistency checked      | Yes      |
-| Release permission confirmed        | Yes      |
-| Data license specified where needed | Yes      |
+Identifier conventions must be verified again before formal public release.
 
 ## Licensing
 
 The repository MIT License applies to source code and original documentation.
 
-It does not automatically license:
+It does not automatically grant redistribution rights for:
 
-* research measurements;
-* microscopy images;
-* segmentation masks;
-* generated research tables;
-* figures;
-* manuscript content.
+- research measurements;
+- microscopy images;
+- segmentation masks;
+- processed research tables;
+- quality-control images;
+- publication figures;
+- manuscript content.
 
-Any released research data must have an explicit and appropriate data license or usage statement.
-
-Do not assume that data may be redistributed solely because the analysis code is available under the MIT License.
+Licensing and permitted reuse of research-derived data and QC material must be
+reviewed separately before formal public release.
 
 ## Current status
 
-| Data component                 | Repository status                      |
-| ------------------------------ | -------------------------------------- |
-| Synthetic Python test data     | Included within tests where applicable |
-| Manual workbook                | Private; pending audit                 |
-| Automated workbook             | Private; pending audit                 |
-| Python research CSV outputs    | Private; pending audit                 |
-| Original Prism input           | Private; pending audit                 |
-| Reconstructed Prism input      | Not yet generated                      |
-| Workbook schemas               | Not yet documented                     |
-| Public research-derived tables | Not yet approved                       |
-| Microscopy images and masks    | Maintained outside this repository     |
+| Data component | Repository status |
+| --- | --- |
+| Curated manual workbook | Included |
+| Curated automated workbook | Included |
+| Processed Python CSV files | Included |
+| Representative QC example | Included under `docs/qc_examples/` |
+| Raw microscopy images | Maintained outside the repository |
+| Complete segmentation dataset | Maintained outside the repository |
+| Generated R results | Created as workflow outputs; not committed by default |
+| Formal public data-release approval | Pending |
+| Data and QC licensing decision | Pending |
+
+For detailed provenance and curation information, see:
+
+```text
+docs/DATA_PROVENANCE.md
+```
