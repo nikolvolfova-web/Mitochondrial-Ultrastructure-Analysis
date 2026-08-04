@@ -476,8 +476,8 @@ Figures are exported as PDF, PNG, and TIFF.
 | Global cristae class-profile workflow | Implemented and passed |
 | Manual-versus-automated agreement workflow | Implemented and passed |
 | Verification of expected R output files | Passed in GitHub Actions |
+| Publication consistency with repository data and analyses | Confirmed |
 | Complete release of all image-level QC material | Not included; protected research material |
-| Final integration of results into the associated publication | Pending |
 | Formal versioned release and Zenodo DOI | Pending |
 
 The automated checks establish that the repository scripts execute against the
