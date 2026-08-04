@@ -1,136 +1,374 @@
 # Analysis Scripts
 
-This directory contains the computational workflows associated with the mitochondrial ultrastructure analysis.
+This directory contains the computational workflows used for preprocessing,
+quality control, and statistical analysis of mitochondrial ultrastructure and
+cristae morphology data.
 
-## Current contents
+All commands below should be run from the repository root.
 
-### Python preprocessing
+## Directory structure
+
+```text
+scripts/
+├── R/
+│   ├── prepare_prism_input.R
+│   ├── analyze-total-cristae.R
+│   ├── Heterogeneity_subjects.R
+│   └── Cristae_LMM.R
+├── python/
+│   └── count_cristae_per_mito.py
+└── README.md
+```
+
+## Workflow overview
+
+The repository contains two analytical branches:
+
+1. **Manual measurements**, stored in
+   `data/curated/cristae_manual.xlsx`.
+2. **Automated measurements**, derived from Empanada segmentation outputs,
+   processed with the Python workflow, and stored in
+   `data/curated/cristae_automated.xlsx`.
+
+The Python preprocessing script applies only to the automated branch. The four
+R workflows operate on the curated Excel workbooks or on the combined Prism
+input generated from them.
+
+```mermaid
+flowchart TD
+    M["data/curated/cristae_manual.xlsx"]
+    A["data/curated/cristae_automated.xlsx"]
+
+    P["scripts/python/count_cristae_per_mito.py"]
+    PI["scripts/R/prepare_prism_input.R"]
+    T["scripts/R/analyze-total-cristae.R"]
+    H["scripts/R/Heterogeneity_subjects.R"]
+    L["scripts/R/Cristae_LMM.R"]
+
+    P --> A
+    M --> PI
+    A --> PI
+    PI --> PR["results/derived/Prism_input.xlsx"]
+    PR --> T
+    PR --> H
+    M --> L
+    A --> L
+```
+
+## Python preprocessing
+
+### Script
 
 ```text
 scripts/python/count_cristae_per_mito.py
 ```
 
-The Python script processes automated segmentation outputs originating from the associated Empanada-based image-analysis workflow.
+### Purpose
 
-It applies only to the automated measurement branch. Manual measurements were recorded independently and did not pass through this script.
+The Python script processes automated segmentation outputs from the associated
+Empanada-based image-analysis workflow.
 
-The Python component is currently included and covered by synthetic tests.
+It:
 
-## Planned R scripts
+- matches mitochondrial and cristae segmentation files;
+- assigns detected cristae to mitochondrial objects;
+- creates per-image and summary CSV outputs;
+- records quality-control information;
+- supports portable command-line execution.
 
-The R workflows are being reconstructed from the original analytical logic and will be added only after their inputs, transformations, and outputs have been validated.
+The Python workflow is not used for the manual measurement branch.
 
-### Prism input preparation
+### Authorship
+
+The original Python preprocessing script and its core computational logic were
+written by **Martin Čapek**. The repository version was adapted for portable
+command-line use, documented, integrated into the project, and covered by
+synthetic tests with his knowledge and permission.
+
+### Running the script
+
+```bash
+python scripts/python/count_cristae_per_mito.py \
+  --mito-dir <PATH_TO_MITOCHONDRIAL_MASKS> \
+  --cristae-dir <PATH_TO_CRISTAE_MASKS> \
+  --output-dir <PROTECTED_OUTPUT_DIRECTORY> \
+  --run-id <RUN_IDENTIFIER> \
+  --fail-on-unpaired
+```
+
+Display all supported options with:
+
+```bash
+python scripts/python/count_cristae_per_mito.py --help
+```
+
+### Automated test
+
+The synthetic Python test suite is located in:
+
+```text
+tests/python/test_count_cristae_per_mito.py
+```
+
+Run it locally with:
+
+```bash
+python -m unittest discover -s tests/python -p "test_*.py" -v
+```
+
+The same test runs through:
+
+```text
+.github/workflows/python-tests.yml
+```
+
+## R workflows
+
+The four R scripts are implemented, documented, and covered by GitHub Actions
+integration checks.
+
+### Recommended execution order
+
+```bash
+Rscript scripts/R/prepare_prism_input.R
+Rscript scripts/R/analyze-total-cristae.R
+Rscript scripts/R/Heterogeneity_subjects.R
+Rscript scripts/R/Cristae_LMM.R
+```
+
+The first script creates the combined Prism input required by the total-cristae
+and subject-heterogeneity workflows.
+
+`Cristae_LMM.R` is independent of the combined Prism input and reads the two
+curated workbooks directly.
+
+---
+
+## 1. Prism input preparation
+
+### Script
 
 ```text
 scripts/R/prepare_prism_input.R
 ```
 
-Planned responsibilities:
-
-* read the manual and automated Excel workbooks;
-* validate their expected schemas;
-* standardize identifiers and data types;
-* record missing and duplicated observations;
-* combine the two measurement methods;
-* export the combined Prism input;
-* generate a validation log.
-
-### Total cristae-count analysis
+### Inputs
 
 ```text
-scripts/analyze_total_cristae_glmm.R
+data/curated/cristae_manual.xlsx
+data/curated/cristae_automated.xlsx
 ```
 
-Planned responsibilities:
+### Purpose
 
-* read the combined Prism input;
-* validate the experimental structure;
-* reproduce the original count-data analysis;
-* generate diagnostics, contrasts, tables, and figures;
-* compare reconstructed results with the original outputs and manuscript.
+The script:
 
-### Between-subject heterogeneity analysis
+- reads the manual and automated curated workbooks;
+- standardizes their analytical structure;
+- combines both measurement methods;
+- performs validation checks;
+- creates the shared Prism input used by the next two R workflows.
+
+### Primary output
 
 ```text
-scripts/analyze_subject_heterogeneity.R
+results/derived/Prism_input.xlsx
 ```
 
-Planned responsibilities:
-
-* read the combined Prism input;
-* calculate subject-level summaries;
-* compare manual and automated measurements;
-* generate plots and heatmaps;
-* verify agreement with the original analysis.
-
-### Cristae morphometry analysis
+### GitHub Actions workflow
 
 ```text
-scripts/analyze_cristae_morphometry_lmm.R
+.github/workflows/r-prepare-prism.yml
 ```
 
-This workflow will process the original workbooks separately:
+---
+
+## 2. Total cristae-count analysis
+
+### Script
 
 ```text
-Manual workbook
-    → Manual LMM run
-
-Automated workbook
-    → Automated LMM run
+scripts/R/analyze-total-cristae.R
 ```
 
-Planned responsibilities:
+### Input
 
-* validate each method-specific input;
-* reproduce the original linear mixed-effects analysis;
-* generate separate diagnostics, tables, and figures;
-* compare each run with its corresponding original results.
+```text
+results/derived/Prism_input.xlsx
+```
 
-## Original versus reconstructed scripts
+### Purpose
 
-The new R scripts will be reconstructed implementations of the original analytical workflow.
+The script:
 
-They may add:
+- validates the combined Prism input;
+- performs the total-cristae count analysis;
+- generates model summaries and planned contrasts;
+- produces diagnostics and structured result tables;
+- exports generated outputs under `results/derived/`.
 
-* explicit input arguments;
-* schema validation;
-* reproducible output directories;
-* structured logs;
-* dependency documentation;
-* automated checks;
-* clearer English names and messages.
+### GitHub Actions workflow
 
-Such improvements will be documented as part of the reconstructed workflow and will not be presented as procedures that were necessarily present in the original analysis.
+```text
+.github/workflows/r-total-cristae.yml
+```
 
-## Validation requirements
+---
 
-An R script will be considered ready for inclusion only after:
+## 3. Between-subject heterogeneity analysis
 
-* its source workbook or table has been identified;
-* required worksheets and columns are documented;
-* the observational unit is defined;
-* exclusions and missing-value handling are documented;
-* the script executes successfully on a protected working copy;
-* generated outputs are compared with the original outputs;
-* relevant results are compared with the manuscript;
-* package dependencies are recorded;
-* local paths and confidential information have been removed.
+### Script
 
-See:
+```text
+scripts/R/Heterogeneity_subjects.R
+```
 
-* [`../docs/DATA_PROVENANCE.md`](../docs/DATA_PROVENANCE.md)
-* [`../docs/VALIDATION_PLAN.md`](../docs/VALIDATION_PLAN.md)
+### Input
+
+```text
+results/derived/Prism_input.xlsx
+```
+
+### Purpose
+
+The script:
+
+- creates subject-level summaries;
+- evaluates heterogeneity across controls and patient groups;
+- compares manual and automated measurements;
+- generates structured Excel outputs under `results/derived/`.
+
+### GitHub Actions workflow
+
+```text
+.github/workflows/r-heterogeneity.yml
+```
+
+---
+
+## 4. Cristae linear mixed-model analysis
+
+### Script
+
+```text
+scripts/R/Cristae_LMM.R
+```
+
+### Inputs
+
+```text
+data/curated/cristae_manual.xlsx
+data/curated/cristae_automated.xlsx
+```
+
+### Statistical design
+
+For each eligible metric, the script fits one linear mixed-effects model:
+
+```text
+y ~ group + (1 | ID_cluster)
+```
+
+All eligible groups are fitted simultaneously. Planned contrasts compare
+Controls with patient groups P1-P10.
+
+The script uses globally unique cluster identifiers and explicit minimum-data
+rules to protect against accidental identifier reuse and unsupported
+comparisons.
+
+### Excluded variables
+
+The following variables are explicitly excluded from this analysis:
+
+```text
+Number of mito
+ER connections
+length of contact
+average length of contact
+```
+
+The derived variable `average length of contact` is not calculated.
+
+### Outputs
+
+The analysis creates separate output trees for manual and automated
+quantification under:
+
+```text
+results/derived/cristae_lmm_safe/
+```
+
+For each method, it exports:
+
+- a structured Excel workbook;
+- input and session information;
+- quality-control counts;
+- missing-value and numeric-conversion audits;
+- group-level summaries;
+- model-estimated means;
+- planned contrasts;
+- Benjamini-Hochberg adjusted p-values;
+- significant-result and review-required tables;
+- individual publication-style plots;
+- summary heatmaps;
+- multi-metric contrast overviews;
+- residual-versus-fitted plots;
+- Q-Q diagnostic plots.
+
+### GitHub Actions workflow
+
+```text
+.github/workflows/r-cristae-lmm.yml
+```
+
+## Automated validation status
+
+The repository contains five automated workflows:
+
+| Workflow | Validation type | Status |
+| --- | --- | --- |
+| `python-tests.yml` | Synthetic Python unit tests | Passed |
+| `r-prepare-prism.yml` | R integration check and output verification | Passed |
+| `r-total-cristae.yml` | R integration check and output verification | Passed |
+| `r-heterogeneity.yml` | R integration check and output verification | Passed |
+| `r-cristae-lmm.yml` | R integration check and output verification | Passed |
+
+The R workflows execute the complete repository scripts against the curated
+repository inputs and verify that expected outputs are generated. They are
+integration checks rather than isolated unit tests.
+
+## Generated outputs
+
+Generated analytical outputs are written under:
+
+```text
+results/derived/
+```
+
+They are uploaded as GitHub Actions artifacts and are not committed to the
+repository unless explicitly approved for release.
+
+Before any generated output is published, it should be reviewed for:
+
+- subject and sample identifiers;
+- filenames and local filesystem paths;
+- embedded metadata;
+- confidential or personal information;
+- unpublished results;
+- consistency with the associated research article.
 
 ## Data protection
 
 The `scripts/` directory must not contain:
 
-* original research workbooks;
-* Python research CSV outputs;
-* microscopy files;
-* manuscript drafts;
-* unpublished results;
-* personal identifiers;
-* credentials;
-* hard-coded private filesystem paths.
+- passwords, tokens, API keys, or credentials;
+- private SSH keys;
+- hard-coded private filesystem paths;
+- raw microscopy images;
+- confidential manuscript drafts;
+- unpublished figures;
+- personal identifiers;
+- unapproved generated research outputs.
+
+Curated analytical inputs belong under `data/curated/`. Generated outputs
+belong under `results/derived/`.
