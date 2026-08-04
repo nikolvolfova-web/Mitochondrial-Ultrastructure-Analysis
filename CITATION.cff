@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite this repository. Please also cite the associated research article once its bibliographic metadata are available."
+title: "Mitochondrial Ultrastructure Analysis"
+type: software
+authors:
+  - family-names: "Volfová"
+    given-names: "Nikol"
+    orcid: "https://orcid.org/0000-0002-8040-2610"
+  - family-names: "Čapek"
+    given-names: "Martin"
+    orcid: "https://orcid.org/0000-0002-5705-8196"
+repository-code: "https://github.com/nikolvolfova-web/Mitochondrial-Ultrastructure-Analysis"
+license: "MIT"

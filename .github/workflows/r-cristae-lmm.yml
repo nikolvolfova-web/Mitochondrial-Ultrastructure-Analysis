@@ -6,14 +6,14 @@ on:
       - scripts/analyze-cristae-lmm
       - main
     paths:
-      - "scripts/Cristae_LMM.R"
+      - "scripts/R/Cristae_LMM.R"
       - "data/curated/cristae_manual.xlsx"
       - "data/curated/cristae_automated.xlsx"
       - ".github/workflows/r-cristae-lmm.yml"
 
   pull_request:
     paths:
-      - "scripts/Cristae_LMM.R"
+      - "scripts/R/Cristae_LMM.R"
       - "data/curated/cristae_manual.xlsx"
       - "data/curated/cristae_automated.xlsx"
       - ".github/workflows/r-cristae-lmm.yml"
@@ -39,7 +39,7 @@ jobs:
 
       - name: Verify input files
         run: |
-          test -f scripts/Cristae_LMM.R
+          test -f scripts/R/Cristae_LMM.R
           test -f data/curated/cristae_manual.xlsx
           test -f data/curated/cristae_automated.xlsx
 
@@ -66,7 +66,7 @@ jobs:
           mkdir -p results/derived/cristae_lmm_safe
           set -o pipefail
 
-          Rscript scripts/Cristae_LMM.R 2>&1 \
+          Rscript scripts/R/Cristae_LMM.R 2>&1 \
             | tee results/derived/cristae_lmm_safe/analysis_run.log
 
       - name: Verify Excel outputs
