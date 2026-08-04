@@ -33,9 +33,9 @@ maintained outside this repository and are not duplicated here.
 
 ## Authors and contributions
 
-- **Nikol Volfová** — manual data evaluation, R-based statistical analyses,
+* **Nikol Volfová** — manual data evaluation, R-based statistical analyses,
   repository integration, documentation, testing, and maintenance.
-- **Martin Čapek** ([LMCF-IMG](https://github.com/LMCF-IMG)) — original author
+* **Martin Čapek** ([LMCF-IMG](https://github.com/LMCF-IMG)) — original author
   of the Python preprocessing script and its core computational logic.
 
 The repository version of the Python script was adapted for portable
@@ -89,10 +89,7 @@ data/curated/cristae_manual.xlsx
 This workbook is the curated tabular record used for the manual branch of the
 downstream analyses.
 
-    T --> O1["Total-cristae tables and diagnostics"]
-    H --> O2["Subject-level heterogeneity outputs"]
-    LMM --> O3["LMM tables, plots, summaries, and diagnostics"]
-```
+### Automated branch
 
 The processed Python outputs included in this repository are:
 
@@ -320,16 +317,16 @@ Planned contrasts compare Controls with patient groups P1-P10.
 
 The workflow exports:
 
-- structured Excel workbooks;
-- quality-control and numeric-conversion audits;
-- descriptive statistics;
-- model-estimated means;
-- planned contrasts;
-- raw and Benjamini-Hochberg adjusted p-values;
-- significant-result and review-required tables;
-- individual plots;
-- summary heatmaps and contrast overviews;
-- residual-versus-fitted and Q-Q diagnostic plots.
+* structured Excel workbooks;
+* quality-control and numeric-conversion audits;
+* descriptive statistics;
+* model-estimated means;
+* planned contrasts;
+* raw and Benjamini-Hochberg adjusted p-values;
+* significant-result and review-required tables;
+* individual plots;
+* summary heatmaps and contrast overviews;
+* residual-versus-fitted and Q-Q diagnostic plots.
 
 Primary output root:
 
@@ -344,13 +341,13 @@ Additional script-level documentation is provided in
 
 The repository contains five automated workflows:
 
-| Workflow file | Purpose |
-| --- | --- |
-| `.github/workflows/python-tests.yml` | Runs the synthetic Python test suite. |
-| `.github/workflows/r-prepare-prism.yml` | Runs Prism input preparation and verifies the generated workbook. |
-| `.github/workflows/r-total-cristae.yml` | Runs the total-cristae analysis and verifies its outputs. |
-| `.github/workflows/r-heterogeneity.yml` | Runs the subject-heterogeneity analysis and verifies its outputs. |
-| `.github/workflows/r-cristae-lmm.yml` | Runs the manual and automated LMM analyses and verifies their outputs. |
+| Workflow file                           | Purpose                                                                |
+| --------------------------------------- | ---------------------------------------------------------------------- |
+| `.github/workflows/python-tests.yml`    | Runs the synthetic Python test suite.                                  |
+| `.github/workflows/r-prepare-prism.yml` | Runs Prism input preparation and verifies the generated workbook.      |
+| `.github/workflows/r-total-cristae.yml` | Runs the total-cristae analysis and verifies its outputs.              |
+| `.github/workflows/r-heterogeneity.yml` | Runs the subject-heterogeneity analysis and verifies its outputs.      |
+| `.github/workflows/r-cristae-lmm.yml`   | Runs the manual and automated LMM analyses and verifies their outputs. |
 
 All five workflows passed during the current pre-release validation.
 
@@ -390,24 +387,24 @@ The current validation and future release-readiness work are documented in
 
 ## Current status
 
-| Component | Status |
-| --- | --- |
-| Python preprocessing script | Included |
-| Python dependency record | Included |
-| Python synthetic tests | Passed |
-| Python GitHub Actions workflow | Passed |
-| Processed Python CSV files | Included |
-| Curated manual workbook | Included |
-| Curated automated workbook | Included |
-| Representative QC example | Included |
-| Prism input preparation workflow | Implemented and passed |
-| Total-cristae analysis workflow | Implemented and passed |
-| Subject-heterogeneity workflow | Implemented and passed |
-| Cristae LMM workflow | Implemented and passed |
-| Verification of expected R output files | Passed |
-| Root-level citation metadata | Included |
-| Formal versioned release | Not yet created |
-| Zenodo archive and DOI | Not yet created |
+| Component                               | Status                 |
+| --------------------------------------- | ---------------------- |
+| Python preprocessing script             | Included               |
+| Python dependency record                | Included               |
+| Python synthetic tests                  | Passed                 |
+| Python GitHub Actions workflow          | Passed                 |
+| Processed Python CSV files              | Included               |
+| Curated manual workbook                 | Included               |
+| Curated automated workbook              | Included               |
+| Representative QC example               | Included               |
+| Prism input preparation workflow        | Implemented and passed |
+| Total-cristae analysis workflow         | Implemented and passed |
+| Subject-heterogeneity workflow          | Implemented and passed |
+| Cristae LMM workflow                    | Implemented and passed |
+| Verification of expected R output files | Passed                 |
+| Root-level citation metadata            | Included               |
+| Formal versioned release                | Not yet created        |
+| Zenodo archive and DOI                  | Not yet created        |
 
 The analyses contained in this repository represent the current analytical
 workflow. Their validated outputs will be used in the associated publication.
@@ -420,20 +417,20 @@ separately.
 
 The repository includes:
 
-- the two curated analytical workbooks;
-- the three processed Python CSV files;
-- one representative QC example;
-- the Python and R analysis scripts;
-- automated validation workflows.
+* the two curated analytical workbooks;
+* the three processed Python CSV files;
+* one representative QC example;
+* the Python and R analysis scripts;
+* automated validation workflows.
 
 The repository does not include:
 
-- raw microscopy images;
-- the complete upstream segmentation dataset;
-- complete patient-level QC material;
-- confidential manuscript files;
-- protected source metadata;
-- generated results that have not been approved for public release.
+* raw microscopy images;
+* the complete upstream segmentation dataset;
+* complete patient-level QC material;
+* confidential manuscript files;
+* protected source metadata;
+* generated results that have not been approved for public release.
 
 Before additional research-derived files are released, they should be reviewed
 for subject or sample identifiers, filenames, local paths, embedded metadata,
@@ -449,11 +446,11 @@ citation once its final bibliographic metadata are available.
 
 The following information will be added after verification and formal release:
 
-- software version;
-- release date;
-- verified author affiliations;
-- article title, journal, publication year, and DOI;
-- Zenodo version DOI and concept DOI.
+* software version;
+* release date;
+* verified author affiliations;
+* article title, journal, publication year, and DOI;
+* Zenodo version DOI and concept DOI.
 
 Verified ORCID identifiers are included in `CITATION.cff`.
 
