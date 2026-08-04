@@ -19,7 +19,7 @@ The repository supports two related analytical branches:
    workbook with the same analytical structure as the manual workbook.
 
 The Python preprocessing step applies only to the automated branch. Both
-curated workbooks are then used by the downstream R workflows.
+curated workbooks are used by the downstream R workflows.
 
 ## Related image-analysis project
 
@@ -28,8 +28,8 @@ from the associated repository:
 
 [Analysis of Mitochondrial Ultrastructure and Morphology](https://github.com/LMCF-IMG/Analysis_Mitochondrial_Ultrastructure_and_Morphology)
 
-Raw microscopy images and upstream segmentation inputs are maintained outside
-this repository and are not duplicated here.
+Raw microscopy images and the complete upstream segmentation dataset are
+maintained outside this repository and are not duplicated here.
 
 ## Authors and contributions
 
@@ -39,8 +39,8 @@ this repository and are not duplicated here.
   of the Python preprocessing script and its core computational logic.
 
 The repository version of the Python script was adapted for portable
-command-line use, documented, and covered by synthetic tests with Martin
-Čapek's knowledge and permission.
+command-line use, documented, integrated into the project, and covered by
+synthetic tests with Martin Čapek's knowledge and permission.
 
 This software contribution statement does not determine authorship of the
 associated research article.
@@ -117,13 +117,11 @@ downstream R analyses.
 
 ### Quality control of mitochondrial segmentation objects
 
-The automated workflow was designed to quantify cristae, not to independently
-benchmark mitochondrial segmentation.
+The automated workflow was designed to quantify cristae within segmented
+mitochondrial compartments. It was not intended as an independent assessment
+of mitochondrial segmentation performance.
 
-Mitochondrial labels were used to define compartments to which detected
-cristae were assigned. Before statistical analysis, the labels were visually
-reviewed to identify clear segmentation errors.
-
+Mitochondrial labels were visually reviewed before statistical analysis.
 Labels that did not correspond to real mitochondrial profiles in the source
 image were excluded because they did not represent valid compartments for
 cristae quantification.
@@ -133,7 +131,7 @@ mitochondrial profiles with zero detected cristae remained included.
 
 The original Python CSV outputs were retained unchanged as the primary
 computational outputs. The automated Excel workbook represents the curated
-analytical dataset used for downstream cristae analyses.
+analytical dataset used for the downstream cristae analyses.
 
 A representative quality-control example is included in:
 
@@ -145,11 +143,8 @@ For this example, mitochondrial labels 1 and 4 were retained as valid
 mitochondrial profiles. Labels 2 and 3 were excluded as mitochondrial
 segmentation errors.
 
-Detailed provenance and curation information is provided in:
-
-```text
-docs/DATA_PROVENANCE.md
-```
+Detailed provenance and curation information is provided in
+[`docs/DATA_PROVENANCE.md`](docs/DATA_PROVENANCE.md).
 
 ## Repository structure
 
@@ -296,8 +291,8 @@ Rscript scripts/R/analyze-total-cristae.R
 ```
 
 This workflow reads the combined Prism input and generates the total-cristae
-statistical analysis, model summaries, contrasts, diagnostics, and derived
-result tables.
+statistical analysis, model summaries, contrasts, diagnostics, tables, and
+figures.
 
 ### 3. Analyse between-subject heterogeneity
 
@@ -329,12 +324,13 @@ Planned contrasts compare Controls with patient groups P1-P10.
 The workflow exports:
 
 - structured Excel workbooks;
-- quality-control and conversion audits;
+- quality-control and numeric-conversion audits;
 - descriptive statistics;
 - model-estimated means;
-- planned contrasts and multiple-testing corrections;
+- planned contrasts;
+- raw and Benjamini-Hochberg adjusted p-values;
 - significant-result and review-required tables;
-- individual publication-style plots;
+- individual plots;
 - summary heatmaps and contrast overviews;
 - residual-versus-fitted and Q-Q diagnostic plots.
 
@@ -344,11 +340,8 @@ Primary output root:
 results/derived/cristae_lmm_safe/
 ```
 
-Additional script-level documentation is provided in:
-
-```text
-scripts/README.md
-```
+Additional script-level documentation is provided in
+[`scripts/README.md`](scripts/README.md).
 
 ## GitHub Actions
 
@@ -364,9 +357,9 @@ The repository contains five automated workflows:
 
 All five workflows passed during the current pre-release validation.
 
-The R workflows are integration checks that execute the complete repository
-analysis scripts against the curated repository inputs and verify that the
-expected outputs are created.
+The Python workflow is covered by synthetic tests. The R workflows are covered
+by integration checks that execute the complete analysis scripts against the
+included curated workbooks and verify the expected generated outputs.
 
 ## Local testing and validation
 
@@ -395,11 +388,8 @@ and heterogeneity workflows.
 `Cristae_LMM.R` reads the two curated workbooks directly and does not depend on
 `Prism_input.xlsx`.
 
-The validation and future release-readiness work are documented in:
-
-```text
-docs/VALIDATION_PLAN.md
-```
+The current validation and future release-readiness work are documented in
+[`docs/VALIDATION_PLAN.md`](docs/VALIDATION_PLAN.md).
 
 ## Current status
 
@@ -474,29 +464,19 @@ No article, software, or Zenodo DOI is currently claimed.
 
 ## Contributing
 
-Contribution guidelines are provided in:
+Contribution guidelines are provided in
+[`CONTRIBUTING.md`](CONTRIBUTING.md).
 
-```text
-CONTRIBUTING.md
-```
-
-All contributors are expected to follow:
-
-```text
-CODE_OF_CONDUCT.md
-```
+All contributors are expected to follow the project
+[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 ## License
 
 The source code and original documentation in this repository are available
 under the [MIT License](LICENSE).
 
-Copyright (c) 2026 Nikol Volfová  
-Copyright (c) 2026 Martin Čapek
-
-Research data, generated research tables, figures, microscopy files,
-segmentation outputs, and manuscript content are not automatically covered by
-the MIT License unless a separate license or explicit statement says otherwise.
+Licensing of the research data and QC material will be reviewed separately
+before the formal public release.
 
 ## Security and responsible disclosure
 
