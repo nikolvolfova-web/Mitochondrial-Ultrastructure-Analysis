@@ -1,0 +1,131 @@
+name: Test cristae LMM analysis
+
+on:
+  push:
+    branches:
+      - scripts/analyze-cristae-lmm
+      - main
+    paths:
+      - "scripts/Cristae_LMM.R"
+      - "data/curated/cristae_manual.xlsx"
+      - "data/curated/cristae_automated.xlsx"
+      - ".github/workflows/r-cristae-lmm.yml"
+
+  pull_request:
+    paths:
+      - "scripts/Cristae_LMM.R"
+      - "data/curated/cristae_manual.xlsx"
+      - "data/curated/cristae_automated.xlsx"
+      - ".github/workflows/r-cristae-lmm.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cristae-lmm-analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Verify input files
+        run: |
+          test -f scripts/Cristae_LMM.R
+          test -f data/curated/cristae_manual.xlsx
+          test -f data/curated/cristae_automated.xlsx
+
+      - name: Install required R packages
+        run: |
+          Rscript -e '
+            install.packages(
+              c(
+                "openxlsx",
+                "lme4",
+                "lmerTest",
+                "ggplot2",
+                "dplyr",
+                "tidyr",
+                "tibble",
+                "stringr"
+              )
+            )
+          '
+
+      - name: Run cristae LMM analysis
+        shell: bash
+        run: |
+          mkdir -p results/derived/cristae_lmm
+          set -o pipefail
+          Rscript scripts/Cristae_LMM.R 2>&1 \
+            | tee results/derived/cristae_lmm/analysis_run.log
+
+      - name: Verify Excel outputs
+        run: |
+          test -f results/derived/cristae_lmm/manual/cristae_lmm_manual_results.xlsx
+          test -f results/derived/cristae_lmm/automated/cristae_lmm_automated_results.xlsx
+
+      - name: Verify manual plots
+        shell: bash
+        run: |
+          test -d results/derived/cristae_lmm/manual/plots
+
+          test -n "$(
+            find results/derived/cristae_lmm/manual/plots \
+              -maxdepth 1 \
+              -type f \
+              -name '*.png' \
+              -print \
+              -quit
+          )"
+
+          test -n "$(
+            find results/derived/cristae_lmm/manual/plots \
+              -maxdepth 1 \
+              -type f \
+              -name '*.pdf' \
+              -print \
+              -quit
+          )"
+
+      - name: Verify automated plots
+        shell: bash
+        run: |
+          test -d results/derived/cristae_lmm/automated/plots
+
+          test -n "$(
+            find results/derived/cristae_lmm/automated/plots \
+              -maxdepth 1 \
+              -type f \
+              -name '*.png' \
+              -print \
+              -quit
+          )"
+
+          test -n "$(
+            find results/derived/cristae_lmm/automated/plots \
+              -maxdepth 1 \
+              -type f \
+              -name '*.pdf' \
+              -print \
+              -quit
+          )"
+
+      - name: Show generated output summary
+        shell: bash
+        run: |
+          echo "Generated Excel files:"
+          find results/derived/cristae_lmm \
+            -type f \
+            -name '*.xlsx' \
+            -print
+
+          echo
