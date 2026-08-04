@@ -52,13 +52,34 @@ announce_step <- function(step_number, step_title) {
 # ==============================================================================
 announce_step(0, "User analysis settings")
 
-# Default filenames. If these files are not found in the current working
-# directory, an interactive file-selection window will be opened in RStudio.
-MANUAL_DEFAULT_FILE    <- "cristae_manual.xlsx"
-AUTOMATED_DEFAULT_FILE <- "cristae_automated.xlsx"
+# Repository-relative paths. Run this script from the repository root with:
+# Rscript scripts/R/cristae_Bland_Altman.R
+REPOSITORY_ROOT <- normalizePath(
+  ".",
+  winslash = "/",
+  mustWork = TRUE
+)
 
-# Set to FALSE if package installation must be managed manually.
-INSTALL_MISSING_PACKAGES <- TRUE
+MANUAL_INPUT_FILE <- file.path(
+  REPOSITORY_ROOT,
+  "data",
+  "curated",
+  "cristae_manual.xlsx"
+)
+
+AUTOMATED_INPUT_FILE <- file.path(
+  REPOSITORY_ROOT,
+  "data",
+  "curated",
+  "cristae_automated.xlsx"
+)
+
+OUTPUT_DIRECTORY <- file.path(
+  REPOSITORY_ROOT,
+  "results",
+  "derived",
+  "cristae_bland_altman"
+)
 
 # Graph settings. The generic "sans" family maps to an Arial/Helvetica-like font
 # and is more portable across Windows, macOS and Linux than a hard-coded font.
@@ -95,73 +116,87 @@ missing_packages <- required_packages[
   !vapply(required_packages, requireNamespace, logical(1), quietly = TRUE)
 ]
 
-if (length(missing_packages) > 0 && INSTALL_MISSING_PACKAGES) {
-  message(
-    "Installing missing packages: ",
-    paste(missing_packages, collapse = ", ")
-  )
-  install.packages(missing_packages, repos = "https://cloud.r-project.org")
-}
-
-missing_packages <- required_packages[
-  !vapply(required_packages, requireNamespace, logical(1), quietly = TRUE)
-]
-
 if (length(missing_packages) > 0) {
   stop(
-    "The following required packages are not installed: ",
+    "Missing required R package(s): ",
     paste(missing_packages, collapse = ", "),
-    "\nInstall them and run the script again."
+    "\nInstall the missing package(s) before running this script again.",
+    call. = FALSE
   )
 }
 
 
 # ==============================================================================
-# STEP 2: SELECT INPUT FILES AND CREATE THE OUTPUT DIRECTORY
+# STEP 2: VALIDATE INPUT FILES AND CREATE THE OUTPUT DIRECTORY
 # ==============================================================================
-announce_step(2, "Select input Excel workbooks and create the output folder")
+announce_step(2, "Validate input Excel workbooks and create the output folder")
 
-select_excel_file <- function(default_file, prompt_text) {
-  if (file.exists(default_file)) {
-    return(normalizePath(default_file, winslash = "/", mustWork = TRUE))
-  }
-
-  if (!interactive()) {
-    stop(
-      "Input file was not found: ", default_file,
-      "\nSet the correct path in STEP 0 before running non-interactively."
-    )
-  }
-
-  message(prompt_text)
-  selected_file <- file.choose()
-  normalizePath(selected_file, winslash = "/", mustWork = TRUE)
+if (!file.exists(MANUAL_INPUT_FILE)) {
+  stop(
+    "Manual input workbook does not exist:\n",
+    MANUAL_INPUT_FILE,
+    "\nRun the script from the repository root and verify the required path ",
+    "data/curated/cristae_manual.xlsx.",
+    call. = FALSE
+  )
 }
 
-manual_file <- select_excel_file(
-  MANUAL_DEFAULT_FILE,
-  "Select the Excel workbook containing MANUAL cristae counts."
+if (!file.exists(AUTOMATED_INPUT_FILE)) {
+  stop(
+    "Automated input workbook does not exist:\n",
+    AUTOMATED_INPUT_FILE,
+    "\nRun the script from the repository root and verify the required path ",
+    "data/curated/cristae_automated.xlsx.",
+    call. = FALSE
+  )
+}
+
+manual_file <- normalizePath(
+  MANUAL_INPUT_FILE,
+  winslash = "/",
+  mustWork = TRUE
 )
 
-automated_file <- select_excel_file(
-  AUTOMATED_DEFAULT_FILE,
-  "Select the Excel workbook containing AUTOMATED cristae counts."
+automated_file <- normalizePath(
+  AUTOMATED_INPUT_FILE,
+  winslash = "/",
+  mustWork = TRUE
 )
 
 if (identical(manual_file, automated_file)) {
-  stop("The manual and automated input files must be different files.")
+  stop(
+    "The manual and automated input files must be different files.",
+    call. = FALSE
+  )
 }
 
-output_dir <- file.path(
-  dirname(manual_file),
-  "cristae_manual_vs_automated_results"
-)
+output_dir <- OUTPUT_DIRECTORY
 
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+if (!dir.exists(output_dir)) {
+  directory_created <- dir.create(
+    output_dir,
+    recursive = TRUE,
+    showWarnings = FALSE
+  )
+
+  if (!directory_created && !dir.exists(output_dir)) {
+    stop(
+      "The output directory could not be created:\n",
+      output_dir,
+      call. = FALSE
+    )
+  }
+}
+
+output_dir <- normalizePath(
+  output_dir,
+  winslash = "/",
+  mustWork = TRUE
+)
 
 message("Manual input:    ", manual_file)
 message("Automated input: ", automated_file)
-message("Output folder:   ", normalizePath(output_dir, winslash = "/"))
+message("Output folder:   ", output_dir)
 
 
 # ==============================================================================
@@ -1088,7 +1123,21 @@ message(sprintf(
   regression_coefficients[["(Intercept)"]],
   regression_coefficients[["manual_total"]]
 ))
-message("\nAll outputs were saved to:\n", normalizePath(output_dir, winslash = "/"))
+created_files <- sort(list.files(
+  path = output_dir,
+  all.files = FALSE,
+  full.names = FALSE,
+  recursive = FALSE,
+  include.dirs = FALSE
+))
+
+message("\nAll outputs were saved to:\n", output_dir)
+message("Created files:")
+if (length(created_files) == 0) {
+  message("  (none)")
+} else {
+  message(paste0("  - ", created_files, collapse = "\n"))
+}
 
 # Display the combined figure when the script is run interactively in RStudio.
 if (interactive()) {
