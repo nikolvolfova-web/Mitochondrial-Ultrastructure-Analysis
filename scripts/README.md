@@ -276,19 +276,6 @@ The script uses globally unique cluster identifiers and explicit minimum-data
 rules to protect against accidental identifier reuse and unsupported
 comparisons.
 
-### Excluded variables
-
-The following variables are explicitly excluded from this analysis:
-
-```text
-Number of mito
-ER connections
-length of contact
-average length of contact
-```
-
-The derived variable `average length of contact` is not calculated.
-
 ### Outputs
 
 The analysis creates separate output trees for manual and automated
