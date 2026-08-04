@@ -39,6 +39,7 @@ local_results/
 # Generated outputs
 results/private/
 results/generated/
+results/derived/
 outputs/
 output/
 
