@@ -168,7 +168,8 @@ Detailed provenance and curation information is provided in
 │   │   └── python/
 │   │       ├── all_cristae_instances.csv
 │   │       ├── cristae_counts_image_summary.csv
-│   │       └── cristae_counts_per_mito.csv
+│   │       ├── cristae_counts_per_mito.csv
+│   │       └── README.md
 │   └── README.md
 ├── docs/
 │   ├── qc_examples/
@@ -497,7 +498,8 @@ The current validation and future release-readiness work are documented in
 | Zenodo archive and DOI | Not yet created |
 
 The analyses contained in this repository represent the current analytical
-workflow. Their validated outputs will be used in the associated publication.
+workflow. The curated data and analytical outputs in this repository are those
+reported in the associated publication.
 
 Full reproduction from raw microscopy images is outside the scope of this
 repository because raw images and upstream segmentation inputs are maintained
