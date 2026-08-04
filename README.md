@@ -89,12 +89,9 @@ data/curated/cristae_manual.xlsx
 This workbook is the curated tabular record used for the manual branch of the
 downstream analyses.
 
-### Automated branch
-
-Empanada segmentation outputs were processed using:
-
-```text
-scripts/python/count_cristae_per_mito.py
+    T --> O1["Total-cristae tables and diagnostics"]
+    H --> O2["Subject-level heterogeneity outputs"]
+    LMM --> O3["LMM tables, plots, summaries, and diagnostics"]
 ```
 
 The processed Python outputs included in this repository are:
