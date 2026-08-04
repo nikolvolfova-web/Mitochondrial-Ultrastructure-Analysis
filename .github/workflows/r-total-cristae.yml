@@ -3,9 +3,9 @@ name: Test total cristae analysis
 on:
   push:
     branches:
-      - scripts/analyze-total-cristae
+      - scripts/R/analyze-total-cristae.R
     paths:
-      - "scripts/prepare_prism_input.R"
+      - "scripts/R/prepare_prism_input.R"
       - "scripts/Stat_total_cristae.R"
       - "data/curated/**"
       - ".github/workflows/r-prepare-prism.yml"
@@ -51,7 +51,7 @@ jobs:
 
       - name: Generate Prism input
         run: |
-          Rscript scripts/prepare_prism_input.R
+          Rscript scripts/R/prepare_prism_input.R
 
       - name: Verify Prism input
         run: |
@@ -59,7 +59,7 @@ jobs:
 
       - name: Run total cristae analysis
         run: |
-          Rscript scripts/analyze-total-cristae
+          Rscript scripts/R/analyze-total-cristae.R
 
       - name: Verify statistical outputs
         run: |

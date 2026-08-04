@@ -163,7 +163,7 @@ The combined Prism input is a derived analytical table generated from the manual
 The reconstructed version will be created using:
 
 ```text
-scripts/prepare_prism_input.R
+scripts/R/prepare_prism_input.R
 ```
 
 The original and reconstructed Prism input files must remain private until they have been compared and reviewed.

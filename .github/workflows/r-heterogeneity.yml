@@ -5,8 +5,8 @@ on:
     branches:
       - scripts/analyze-heterogeneity
     paths:
-      - "scripts/prepare_prism_input.R"
-      - "scripts/Heterogeneity_subjects.R"
+      - "scripts/R/prepare_prism_input.R"
+      - "scripts/R/Heterogeneity_subjects.R"
       - "data/curated/**"
       - ".github/workflows/r-heterogeneity.yml"
 
@@ -49,7 +49,7 @@ jobs:
 
       - name: Generate Prism input
         run: |
-          Rscript scripts/prepare_prism_input.R
+          Rscript scripts/R/prepare_prism_input.R
 
       - name: Verify Prism input
         run: |
@@ -57,7 +57,7 @@ jobs:
 
       - name: Run subject heterogeneity analysis
         run: |
-          Rscript scripts/Heterogeneity_subjects.R
+          Rscript scripts/R/Heterogeneity_subjects.R
 
       - name: Verify heterogeneity outputs
         run: |

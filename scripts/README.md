@@ -23,7 +23,7 @@ The R workflows are being reconstructed from the original analytical logic and w
 ### Prism input preparation
 
 ```text
-scripts/prepare_prism_input.R
+scripts/R/prepare_prism_input.R
 ```
 
 Planned responsibilities:

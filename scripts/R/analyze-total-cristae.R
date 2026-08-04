@@ -106,7 +106,7 @@ if (!file.exists(infile)) {
     paste(
       "Input workbook was not found:",
       infile,
-      "\nRun scripts/prepare_prism_input.R first."
+      "\nRun scripts/R/prepare_prism_input.R first."
     ),
     call. = FALSE
   )

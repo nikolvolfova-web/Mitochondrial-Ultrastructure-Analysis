@@ -109,7 +109,7 @@ The new R scripts will reproduce the original analytical logic using documented 
 ### Prism input preparation
 
 ```text
-scripts/prepare_prism_input.R
+scripts/R/prepare_prism_input.R
 ```
 
 Planned function:

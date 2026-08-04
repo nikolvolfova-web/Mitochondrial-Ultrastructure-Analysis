@@ -3,7 +3,7 @@ name: Test Prism input generation
 on:
   pull_request:
     paths:
-      - "scripts/prepare_prism_input.R"
+      - "scripts/R/prepare_prism_input.R"
       - "data/curated/**"
       - ".github/workflows/r-prepare-prism.yml"
 
@@ -11,7 +11,7 @@ on:
     branches:
       - main
     paths:
-      - "scripts/prepare_prism_input.R"
+      - "scripts/R/prepare_prism_input.R"
       - "data/curated/**"
       - ".github/workflows/r-prepare-prism.yml"
 
@@ -51,7 +51,7 @@ jobs:
 
       - name: Generate Prism input
         run: |
-          Rscript scripts/prepare_prism_input.R
+          Rscript scripts/R/prepare_prism_input.R
 
       - name: Verify Prism input
         run: |

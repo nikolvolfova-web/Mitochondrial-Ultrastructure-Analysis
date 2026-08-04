@@ -129,7 +129,7 @@ A machine-readable or tabular schema will be added after the workbooks have been
 A new script will be created:
 
 ```text
-scripts/prepare_prism_input.R
+scripts/R/prepare_prism_input.R
 ```
 
 The script will:
