@@ -1,0 +1,84 @@
+name: Test subject heterogeneity analysis
+
+on:
+  push:
+    branches:
+      - scripts/analyze-heterogeneity
+    paths:
+      - "scripts/prepare_prism_input.R"
+      - "scripts/Heterogeneity_subjects.R"
+      - "data/curated/**"
+      - ".github/workflows/r-heterogeneity.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  heterogeneity-analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install required R packages
+        run: |
+          Rscript -e '
+            install.packages(
+              c(
+                "readxl",
+                "dplyr",
+                "tidyr",
+                "stringr",
+                "ggplot2",
+                "forcats",
+                "writexl",
+                "scales",
+                "tibble"
+              )
+            )
+          '
+
+      - name: Generate Prism input
+        run: |
+          Rscript scripts/prepare_prism_input.R
+
+      - name: Verify Prism input
+        run: |
+          test -f results/derived/Prism_input.xlsx
+
+      - name: Run subject heterogeneity analysis
+        run: |
+          Rscript scripts/Heterogeneity_subjects.R
+
+      - name: Verify heterogeneity outputs
+        run: |
+          test -f results/derived/heterogeneity_subjects/01_subject_aggregate.xlsx
+          test -f results/derived/heterogeneity_subjects/02_subject_rank_plot.png
+          test -f results/derived/heterogeneity_subjects/03_image_level_by_subject.png
+          test -f results/derived/heterogeneity_subjects/04_class_profile_heatmap_manual.png
+          test -f results/derived/heterogeneity_subjects/05_class_profile_heatmap_automated.png
+          test -f results/derived/heterogeneity_subjects/06_subject_tables.xlsx
+          test -f results/derived/heterogeneity_subjects/07_readme_summary.txt
+
+      - name: Show generated files
+        run: |
+          find results/derived -maxdepth 3 -type f -print
+
+      - name: Upload heterogeneity results
+        uses: actions/upload-artifact@v4
+        with:
+          name: heterogeneity-analysis-results
+          path: |
+            results/derived/Prism_input.xlsx
+            results/derived/heterogeneity_subjects/**
+          if-no-files-found: error
+          retention-days: 14
