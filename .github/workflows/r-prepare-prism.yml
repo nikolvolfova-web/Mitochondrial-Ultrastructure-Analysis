@@ -59,7 +59,7 @@ jobs:
 
       - name: Run total cristae analysis
         run: |
-          Rscript scripts/Stat_total_cristae.R
+          Rscript scripts/analyze-total-cristae
 
       - name: Verify statistical outputs
         run: |
