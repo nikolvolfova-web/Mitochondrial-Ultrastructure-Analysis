@@ -13,6 +13,33 @@
 #   07_readme_summary.txt
 # =========================================================
 
+# ANALYTICAL SCOPE
+# ----------------
+# This is a descriptive heterogeneity workflow. It does not fit an inferential
+# statistical model. Its purpose is to show how subject-level values and
+# within-subject image-level measurements vary across controls and HD subjects.
+#
+# Two measurement methods are processed in parallel:
+#   - Manual
+#   - Automated
+#
+# The central subject-level quantity is a pooled rate:
+#
+#   cristae_per_mito = sum(total cristae across images) /
+#                      sum(mitochondria across images)
+#
+# This weighting gives each mitochondrion equal contribution. It is not the
+# arithmetic mean of image-specific `total / n_mito` values.
+#
+# The control band is the observed minimum-to-maximum range across control
+# subjects for each method. It is a descriptive reference range, not a
+# confidence interval or formal statistical acceptance interval.
+#
+# SCRIPT STRUCTURE
+# ----------------
+# The script is intentionally written as a sequential workflow and contains no
+# user-defined functions. Each numbered section documents one reproducible step.
+
 
 # ---------- 0) install missing packages ----------
 
@@ -48,7 +75,7 @@ library(writexl)
 library(scales)
 
 
-# ---------- 2) input file ----------
+# ---------- 2) define input and output paths ----------
 
 infile <- file.path(
   "results",
@@ -66,7 +93,7 @@ if (!dir.exists(out_dir)) {
 }
 
 
-# ---------- 3) read data ----------
+# ---------- 3) read the paired image-level input table ----------
 
 raw <- read_excel(
   infile,
@@ -74,7 +101,7 @@ raw <- read_excel(
 )
 
 
-# ---------- 4) checks ----------
+# ---------- 4) validate required input columns ----------
 
 required_cols <- c(
   "group",
@@ -92,13 +119,13 @@ missing_cols <- setdiff(
 
 if (length(missing_cols) > 0) {
   stop(
-    "Chybi sloupce: ",
+    "Missing required columns: ",
     paste(missing_cols, collapse = ", ")
   )
 }
 
 
-# ---------- 5) derive subject_id and disease_status ----------
+# ---------- 5) derive disease status and subject identifiers ----------
 
 # Public control identifiers:
 #   image_id beginning with C1_ -> C1
@@ -107,6 +134,9 @@ if (length(missing_cols) > 0) {
 # HD subjects:
 #   P1 ... P10 in group
 
+# Control subjects are encoded in image IDs (`C1_` and `C2_`), whereas HD
+# subjects are encoded by the worksheet/group name (`P1` through `P10`).
+# Factor levels place Ctrl before HD for consistent plotting and summaries.
 dat <- raw %>%
   mutate(
     disease_status = case_when(
@@ -129,8 +159,11 @@ dat <- raw %>%
   )
 
 
-# ---------- 6) wide -> long ----------
+# ---------- 6) reshape paired manual/automated columns to long format ----------
 
+# `pivot_longer()` converts columns such as `manual_total` and `auto_total`
+# into a shared `total` column plus a method indicator. Rows without a valid
+# total or a positive mitochondrion count are excluded before rate calculation.
 long <- dat %>%
   pivot_longer(
     cols = -c(
@@ -171,7 +204,7 @@ long <- dat %>%
   )
 
 
-# ---------- 7) aggregate to subject level ----------
+# ---------- 7) aggregate image-level measurements to subject level ----------
 
 label_cols <- grep(
   "^label_",
@@ -179,6 +212,9 @@ label_cols <- grep(
   value = TRUE
 )
 
+# Counts are summed before division so that `cristae_per_mito` is a pooled
+# subject-level rate. Class proportions are also calculated from summed class
+# counts, preserving the contribution of all observed cristae.
 subject_agg <- long %>%
   group_by(
     disease_status,
@@ -226,8 +262,10 @@ subject_agg <- long %>%
   )
 
 
-# ---------- 8) control range per method ----------
+# ---------- 8) calculate the descriptive control range for each method ----------
 
+# The observed control minimum, maximum, and mean are calculated separately
+# for Manual and Automated measurements. These values are descriptive only.
 control_band <- subject_agg %>%
   filter(
     disease_status == "Ctrl"
@@ -253,8 +291,10 @@ control_band <- subject_agg %>%
   )
 
 
-# ---------- 9) rank subjects by Manual cristae_per_mito ----------
+# ---------- 9) define a common subject order using the Manual pooled rate ----------
 
+# A single ordering derived from Manual values is reused in both facets and
+# heatmaps, allowing direct visual comparison between measurement methods.
 manual_order <- subject_agg %>%
   filter(
     method == "Manual"
@@ -280,7 +320,7 @@ long <- long %>%
   )
 
 
-# ---------- 10) classify HD subjects relative to control band ----------
+# ---------- 10) classify each subject relative to the observed control range ----------
 
 subject_agg <- subject_agg %>%
   left_join(
@@ -302,7 +342,7 @@ subject_agg <- subject_agg %>%
   )
 
 
-# ---------- 11) save subject table ----------
+# ---------- 11) export the primary subject-level table ----------
 
 write_xlsx(
   list(
@@ -316,7 +356,7 @@ write_xlsx(
 )
 
 
-# ---------- 12) PLOT 1: subject rank plot with control band ----------
+# ---------- 12) PLOT 1: subject-level rank plot with control reference band ----------
 
 p_rank <- ggplot(
   subject_agg,
@@ -396,7 +436,7 @@ ggsave(
 )
 
 
-# ---------- 13) PLOT 2: image-level distribution within each subject ----------
+# ---------- 13) PLOT 2: within-subject image-level distributions ----------
 
 # Shows within-subject variability and overlap across subjects
 
@@ -463,8 +503,11 @@ ggsave(
 )
 
 
-# ---------- 14) prepare class-profile heatmap ----------
+# ---------- 14) reshape subject-level class proportions for heatmaps ----------
 
+# Wide class-proportion columns are converted to one row per subject, method,
+# and cristae class. The explicit class order prevents lexical sorting (e.g.,
+# class 10 appearing before class 2).
 heat_long <- subject_agg %>%
   select(
     disease_status,
@@ -491,7 +534,7 @@ heat_long <- subject_agg %>%
   )
 
 
-# ---------- 15) PLOT 3A: heatmap Manual ----------
+# ---------- 15) PLOT 3A: Manual class-profile heatmap ----------
 
 p_heat_manual <- heat_long %>%
   filter(
@@ -541,7 +584,7 @@ ggsave(
 )
 
 
-# ---------- 16) PLOT 3B: heatmap Automated ----------
+# ---------- 16) PLOT 3B: Automated class-profile heatmap ----------
 
 p_heat_auto <- heat_long %>%
   filter(
@@ -591,8 +634,10 @@ ggsave(
 )
 
 
-# ---------- 17) export tables ----------
+# ---------- 17) export detailed subject and image summaries ----------
 
+# This table summarizes the distribution of image-specific rates within each
+# subject. Unlike `subject_agg`, these statistics give every image equal weight.
 image_summary <- long %>%
   group_by(
     disease_status,
@@ -644,7 +689,7 @@ write_xlsx(
 )
 
 
-# ---------- 18) concise text summary ----------
+# ---------- 18) write a concise human-readable summary ----------
 
 sink(
   file.path(
@@ -684,35 +729,35 @@ cat("\n\n3) Interpretation guide:\n")
 
 cat(
   paste0(
-    "- 02_subject_rank_plot.png: kazdy bod = jeden subjekt; ",
-    "sedy pas = kontrolni rozmezi\n"
+    "- 02_subject_rank_plot.png: each point represents one subject; ",
+    "the grey band is the observed control range\n"
   )
 )
 
 cat(
   paste0(
-    "- 03_image_level_by_subject.png: kazdy bod = jeden obrazek; ",
-    "ukazuje vnitrni variabilitu subjektu\n"
+    "- 03_image_level_by_subject.png: each point represents one image; ",
+    "the plot shows within-subject variability\n"
   )
 )
 
 cat(
-  "- 04/05 heatmap: proporce trid crist u kazdeho subjektu\n"
+  "- 04/05 heatmaps: cristae-class proportions for each subject\n"
 )
 
 cat(
   paste0(
-    "- position_vs_ctrl urcuje, zda je HD subjekt pod, ",
-    "v nebo nad kontrolnim rozmezi\n"
+    "- position_vs_ctrl indicates whether an HD subject is below, ",
+    "within, or above the observed control range\n"
   )
 )
 
 sink()
 
-cat("\nHOTOVO.\n")
+cat("\nCOMPLETED.\n")
 
 cat(
-  "Vystupy byly ulozeny do slozky:\n",
+  "Outputs were saved to:\n",
   out_dir,
   "\n"
 )
