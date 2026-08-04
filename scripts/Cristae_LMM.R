@@ -1,6 +1,5 @@
 ################################################################################
 # CRISTAE LINEAR MIXED-MODEL ANALYSIS
-# SAFE, DOCUMENTED, PUBLICATION-STYLE VERSION
 #
 # Statistical design
 # ------------------
@@ -9,7 +8,7 @@
 #   y ~ group + (1 | ID_cluster)
 #
 # All eligible groups are fitted simultaneously. Planned contrasts compare each
-# patient group (P1-P10) with Ctrl. The model therefore uses one common estimate
+# patient group (P1-P10) with Controls. The model therefore uses one common estimate
 # of the residual and random-intercept variance for all contrasts of a metric.
 #
 # The random-effect identifier is made globally unique from group, worksheet and
@@ -36,6 +35,7 @@
 # - one structured Excel workbook for each input workbook
 # - publication-style PNG and PDF plots
 # - model diagnostic plots
+# - summary effect heatmap and multi-metric contrast overview
 # - QC tables, conversion audit, model means and planned contrasts
 ################################################################################
 
@@ -65,7 +65,7 @@ output_root <- file.path(
 # corresponding character vector.
 groups <- list(
   "C" = list(
-    "Ctrl." = c("Ctrl.")
+    "Controls" = c("Ctrl.")
   ),
   "P" = list(
     "P1" = c("P1"),
@@ -81,7 +81,7 @@ groups <- list(
   )
 )
 
-control_group <- "Ctrl."
+control_group <- "Controls"
 
 # Metrics listed here are modelled after natural-log transformation.
 # All retained observations must be strictly positive for these metrics.
@@ -2175,7 +2175,7 @@ make_metric_plot <- function(
     labs(
       title = publication_label_for_metric(metric),
       subtitle = paste0(
-        "One LMM per metric; planned Ctrl.-versus-patient contrasts; ",
+        "One LMM per metric; planned Controls-versus-patient contrasts; ",
         "random intercept for independent ID"
       ),
       x = NULL,
@@ -2343,7 +2343,474 @@ make_metric_plot <- function(
 
 
 # ==============================================================================
-# 8. COMPLETE ANALYSIS FOR ONE WORKBOOK
+# 8. SUMMARY COMPARISON PLOTS
+# ==============================================================================
+
+#' Prepare a common model-based effect table for summary figures.
+#'
+#' @param statistics_all Complete planned-contrast table after p-value
+#'   adjustment.
+#' @param metric_order Metric names in the desired plotting order.
+#' @return A tibble containing model-based percentage changes, corresponding
+#'   95% confidence limits and significance labels.
+#' @details For untransformed metrics, the percentage change is the estimated
+#'   patient-minus-Control difference divided by the model-estimated Control
+#'   mean. For log-transformed metrics, it is calculated from the
+#'   back-transformed patient-to-Control ratio. These definitions are identical
+#'   to the percentage-effect calculation exported in `statistics_all`.
+prepare_summary_effect_data <- function(statistics_all, metric_order) {
+  statistics_all %>%
+    mutate(
+      patient_group = factor(
+        as.character(patient_group),
+        levels = names(groups$P)
+      ),
+      publication_label = factor(
+        publication_label,
+        levels = publication_label_for_metric(metric_order)
+      ),
+      significance_value = .data[[plot_significance_column]],
+      significance_label = p_to_stars(significance_value),
+      CI_95_low_percent = dplyr::case_when(
+        effect_type == "ratio" ~
+          100 * (CI_95_low_response - 1),
+        effect_type == "difference" ~
+          100 * safe_divide(
+            CI_95_low_response,
+            control_emmean_response
+          ),
+        TRUE ~ NA_real_
+      ),
+      CI_95_high_percent = dplyr::case_when(
+        effect_type == "ratio" ~
+          100 * (CI_95_high_response - 1),
+        effect_type == "difference" ~
+          100 * safe_divide(
+            CI_95_high_response,
+            control_emmean_response
+          ),
+        TRUE ~ NA_real_
+      )
+    ) %>%
+    arrange(publication_label, patient_group)
+}
+
+#' Save cross-metric summary figures for one analysis method.
+#'
+#' @param statistics_all Complete contrast table after p-value adjustment.
+#' @param metric_order Metric names in the desired plotting order.
+#' @param method_name Analysis label, for example `manual` or `automated`.
+#' @param summary_plot_dir Output directory for summary figures.
+#' @return A list containing a file index and the effect table used by the
+#'   figures.
+#' @details Two complementary outputs are created. The heatmap provides a
+#'   compact overview of model-based percentage changes for P1-P10 relative to
+#'   Controls across all metrics. The contrast overview displays the same
+#'   effects together with 95% confidence intervals. Only inferentially valid
+#'   models are coloured or plotted; unavailable or review-required results are
+#'   shown as grey cells in the heatmap and omitted from the contrast panel.
+#'
+#' The heatmap uses a symmetric colour scale centred at zero. Consequently,
+#' equal-magnitude increases and decreases receive equal visual emphasis.
+#' Significance stars are based on the p-value column selected in
+#' `plot_significance_column`, which is BH adjustment within each metric by
+#' default.
+save_summary_comparison_plots <- function(
+  statistics_all,
+  metric_order,
+  method_name,
+  summary_plot_dir
+) {
+  dir.create(
+    summary_plot_dir,
+    recursive = TRUE,
+    showWarnings = FALSE
+  )
+
+  method_label <- paste0(
+    stringr::str_to_title(method_name),
+    " quantification"
+  )
+
+  effect_data <- prepare_summary_effect_data(
+    statistics_all = statistics_all,
+    metric_order = metric_order
+  )
+
+  patient_levels <- names(groups$P)
+  metric_labels <- publication_label_for_metric(metric_order)
+
+  heatmap_data <- tidyr::expand_grid(
+    metric = metric_order,
+    patient_group = patient_levels
+  ) %>%
+    left_join(
+      effect_data %>%
+        mutate(
+          metric = as.character(metric),
+          patient_group = as.character(patient_group)
+        ) %>%
+        select(
+          metric,
+          patient_group,
+          inferential_valid,
+          percent_change_model_based,
+          CI_95_low_percent,
+          CI_95_high_percent,
+          significance_value,
+          significance_label,
+          model_status
+        ),
+      by = c("metric", "patient_group")
+    ) %>%
+    mutate(
+      publication_label = publication_label_for_metric(metric),
+      publication_label = factor(
+        publication_label,
+        levels = rev(metric_labels)
+      ),
+      patient_group = factor(
+        patient_group,
+        levels = patient_levels
+      ),
+      plotted_percent = ifelse(
+        inferential_valid %in% TRUE,
+        percent_change_model_based,
+        NA_real_
+      ),
+      tile_label = dplyr::case_when(
+        inferential_valid %in% TRUE &
+          is.finite(plotted_percent) &
+          significance_label != "" ~
+          paste0(
+            sprintf("%.0f%%", plotted_percent),
+            "\n",
+            significance_label
+          ),
+        inferential_valid %in% TRUE &
+          is.finite(plotted_percent) ~
+          sprintf("%.0f%%", plotted_percent),
+        TRUE ~ ""
+      )
+    )
+
+  finite_heat_values <- heatmap_data$plotted_percent[
+    is.finite(heatmap_data$plotted_percent)
+  ]
+
+  symmetric_limit <- if (length(finite_heat_values) > 0) {
+    max(abs(finite_heat_values))
+  } else {
+    1
+  }
+
+  if (!is.finite(symmetric_limit) || symmetric_limit <= 0) {
+    symmetric_limit <- 1
+  }
+
+  heatmap_plot <- ggplot(
+    heatmap_data,
+    aes(
+      x = patient_group,
+      y = publication_label,
+      fill = plotted_percent
+    )
+  ) +
+    geom_tile(
+      colour = "white",
+      linewidth = 0.45
+    ) +
+    geom_text(
+      aes(label = tile_label),
+      size = 3.2,
+      lineheight = 0.90
+    ) +
+    scale_fill_gradient2(
+      name = "Change vs\nControls",
+      low = "#2166AC",
+      mid = "white",
+      high = "#B2182B",
+      midpoint = 0,
+      limits = c(-symmetric_limit, symmetric_limit),
+      na.value = "grey90",
+      labels = function(x) paste0(round(x), "%")
+    ) +
+    labs(
+      title = "Model-based effect heatmap",
+      subtitle = paste0(
+        method_label,
+        ": patient groups relative to Controls"
+      ),
+      x = "Patient group",
+      y = NULL,
+      caption = paste0(
+        "Cell values are model-based percentage changes relative to Controls. ",
+        "Blue indicates lower and red indicates higher values. Stars represent ",
+        "BH-adjusted significance within each metric. Grey cells indicate ",
+        "unavailable or review-required model results."
+      )
+    ) +
+    publication_theme(base_size = 12) +
+    theme(
+      panel.grid = element_blank(),
+      axis.text.x = element_text(face = "bold"),
+      axis.text.y = element_text(size = 10),
+      legend.title = element_text(face = "bold"),
+      plot.margin = margin(12, 16, 10, 10)
+    )
+
+  heatmap_png <- file.path(
+    summary_plot_dir,
+    "summary_effect_heatmap.png"
+  )
+  heatmap_pdf <- file.path(
+    summary_plot_dir,
+    "summary_effect_heatmap.pdf"
+  )
+
+  heatmap_height <- max(
+    6,
+    2.8 + 0.48 * length(metric_order)
+  )
+
+  ggsave(
+    filename = heatmap_png,
+    plot = heatmap_plot,
+    width = 12,
+    height = heatmap_height,
+    units = "in",
+    dpi = export_dpi,
+    bg = "white",
+    limitsize = FALSE
+  )
+
+  ggsave(
+    filename = heatmap_pdf,
+    plot = heatmap_plot,
+    width = 12,
+    height = heatmap_height,
+    units = "in",
+    device = grDevices::pdf,
+    bg = "white",
+    limitsize = FALSE
+  )
+
+  valid_contrast_data <- effect_data %>%
+    filter(
+      inferential_valid,
+      is.finite(percent_change_model_based),
+      is.finite(CI_95_low_percent),
+      is.finite(CI_95_high_percent)
+    ) %>%
+    mutate(
+      publication_label = factor(
+        publication_label,
+        levels = metric_labels
+      )
+    )
+
+  contrast_png <- file.path(
+    summary_plot_dir,
+    "summary_contrast_overview.png"
+  )
+  contrast_pdf <- file.path(
+    summary_plot_dir,
+    "summary_contrast_overview.pdf"
+  )
+
+  contrast_status <- "skipped_no_valid_contrasts"
+
+  if (nrow(valid_contrast_data) > 0) {
+    panel_ranges <- valid_contrast_data %>%
+      group_by(metric) %>%
+      summarise(
+        panel_low = min(
+          c(CI_95_low_percent, percent_change_model_based, 0),
+          na.rm = TRUE
+        ),
+        panel_high = max(
+          c(CI_95_high_percent, percent_change_model_based, 0),
+          na.rm = TRUE
+        ),
+        .groups = "drop"
+      ) %>%
+      mutate(
+        annotation_offset = pmax(
+          0.07 * (panel_high - panel_low),
+          0.5
+        )
+      )
+
+    valid_contrast_data <- valid_contrast_data %>%
+      left_join(panel_ranges, by = "metric") %>%
+      mutate(
+        annotation_y = ifelse(
+          percent_change_model_based >= 0,
+          CI_95_high_percent + annotation_offset,
+          CI_95_low_percent - annotation_offset
+        ),
+        annotation_vjust = ifelse(
+          percent_change_model_based >= 0,
+          0,
+          1
+        )
+      )
+
+    contrast_plot <- ggplot(
+      valid_contrast_data,
+      aes(
+        x = patient_group,
+        y = percent_change_model_based
+      )
+    ) +
+      geom_hline(
+        yintercept = 0,
+        linetype = "dashed",
+        linewidth = 0.45,
+        colour = "grey45"
+      ) +
+      geom_errorbar(
+        aes(
+          ymin = CI_95_low_percent,
+          ymax = CI_95_high_percent
+        ),
+        width = 0.12,
+        linewidth = 0.55
+      ) +
+      geom_point(
+        size = 2.5,
+        shape = 21,
+        fill = "white",
+        stroke = 0.7
+      ) +
+      geom_text(
+        data = valid_contrast_data %>%
+          filter(significance_label != ""),
+        aes(
+          y = annotation_y,
+          label = significance_label,
+          vjust = annotation_vjust
+        ),
+        fontface = "bold",
+        size = 4
+      ) +
+      facet_wrap(
+        ~ publication_label,
+        scales = "free_y",
+        ncol = 3
+      ) +
+      scale_y_continuous(
+        labels = function(x) paste0(round(x), "%"),
+        expand = expansion(mult = c(0.14, 0.18))
+      ) +
+      labs(
+        title = "Patient-versus-Controls contrast overview",
+        subtitle = paste0(
+          method_label,
+          ": model-based percentage changes with 95% confidence intervals"
+        ),
+        x = "Patient group",
+        y = "Change relative to Controls",
+        caption = paste0(
+          "Points are model-based percentage changes relative to Controls; ",
+          "error bars are 95% confidence intervals. The dashed line denotes ",
+          "no difference. Stars represent BH-adjusted significance within ",
+          "each metric. Only inferentially valid models are shown."
+        )
+      ) +
+      publication_theme(base_size = 11) +
+      theme(
+        axis.text.x = element_text(
+          angle = 45,
+          hjust = 1,
+          size = 9
+        ),
+        strip.text = element_text(
+          face = "bold",
+          size = 10
+        ),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.margin = margin(12, 16, 10, 10)
+      )
+
+    contrast_height <- max(
+      7,
+      3.25 * ceiling(length(metric_order) / 3)
+    )
+
+    ggsave(
+      filename = contrast_png,
+      plot = contrast_plot,
+      width = 14,
+      height = contrast_height,
+      units = "in",
+      dpi = export_dpi,
+      bg = "white",
+      limitsize = FALSE
+    )
+
+    ggsave(
+      filename = contrast_pdf,
+      plot = contrast_plot,
+      width = 14,
+      height = contrast_height,
+      units = "in",
+      device = grDevices::pdf,
+      bg = "white",
+      limitsize = FALSE
+    )
+
+    contrast_status <- "created"
+  }
+
+  file_index <- tibble::tibble(
+    plot = c(
+      "summary_effect_heatmap",
+      "summary_contrast_overview"
+    ),
+    description = c(
+      paste0(
+        "Heatmap of model-based percentage changes for P1-P10 relative to ",
+        "Controls across all metrics."
+      ),
+      paste0(
+        "Multi-metric overview of model-based patient-versus-Controls ",
+        "percentage effects and 95% confidence intervals."
+      )
+    ),
+    status = c(
+      "created",
+      contrast_status
+    ),
+    png = c(
+      format_repo_path(heatmap_png),
+      if (contrast_status == "created") {
+        format_repo_path(contrast_png)
+      } else {
+        NA_character_
+      }
+    ),
+    pdf = c(
+      format_repo_path(heatmap_pdf),
+      if (contrast_status == "created") {
+        format_repo_path(contrast_pdf)
+      } else {
+        NA_character_
+      }
+    )
+  )
+
+  list(
+    index = file_index,
+    effect_data = effect_data,
+    heatmap_data = heatmap_data
+  )
+}
+
+
+# ==============================================================================
+# 9. COMPLETE ANALYSIS FOR ONE WORKBOOK
 # ==============================================================================
 
 #' Run the complete validated analysis for one manual or automated workbook.
@@ -2408,9 +2875,11 @@ analyse_one_workbook <- function(method_name, input_path) {
 
   method_dir <- file.path(output_root, method_name)
   plot_dir <- file.path(method_dir, "plots")
+  summary_plot_dir <- file.path(method_dir, "summary_plots")
   diagnostic_dir <- file.path(method_dir, "model_diagnostics")
 
   dir.create(plot_dir, recursive = TRUE, showWarnings = FALSE)
+  dir.create(summary_plot_dir, recursive = TRUE, showWarnings = FALSE)
   dir.create(diagnostic_dir, recursive = TRUE, showWarnings = FALSE)
 
   contrast_list <- vector("list", length(variables))
@@ -2655,6 +3124,17 @@ analyse_one_workbook <- function(method_name, input_path) {
 
   plot_index <- dplyr::bind_rows(plot_index_list)
 
+  summary_plot_results <- save_summary_comparison_plots(
+    statistics_all = statistics_all,
+    metric_order = variables,
+    method_name = method_name,
+    summary_plot_dir = summary_plot_dir
+  )
+
+  summary_plot_index <- summary_plot_results$index
+  summary_effects <- summary_plot_results$effect_data
+  summary_heatmap_data <- summary_plot_results$heatmap_data
+
   output_excel <- file.path(
     method_dir,
     paste0(
@@ -2673,6 +3153,7 @@ analyse_one_workbook <- function(method_name, input_path) {
       "input_file",
       "output_excel",
       "plot_directory",
+      "summary_plot_directory",
       "diagnostic_directory",
       "analysis_datetime",
       "model_formula",
@@ -2709,6 +3190,7 @@ analyse_one_workbook <- function(method_name, input_path) {
       format_repo_path(input_path),
       format_repo_path(output_excel),
       format_repo_path(plot_dir),
+      format_repo_path(summary_plot_dir),
       format_repo_path(diagnostic_dir),
       as.character(Sys.time()),
       "y ~ group + (1 | ID_cluster)",
@@ -2721,7 +3203,7 @@ analyse_one_workbook <- function(method_name, input_path) {
         "One model per metric followed by planned treatment-versus-control ",
         "contrasts."
       ),
-      "Ctrl. compared with P1-P10",
+      "Controls compared with P1-P10",
       as.character(min_total_rows_per_group),
       as.character(min_independent_ID_per_group),
       as.character(min_unique_values_per_group),
@@ -2749,7 +3231,7 @@ analyse_one_workbook <- function(method_name, input_path) {
         statistics_all$model_status %in% c("skipped", "failed")
       )),
       paste0(
-        "Benjamini-Hochberg correction across Ctrl.-versus-P1-P10 contrasts ",
+        "Benjamini-Hochberg correction across Controls-versus-P1-P10 contrasts ",
         "within each metric."
       ),
       "Benjamini-Hochberg correction across all valid contrasts in the workbook.",
@@ -2795,6 +3277,9 @@ analyse_one_workbook <- function(method_name, input_path) {
   add_sheet(workbook, "model_diagnostics", model_diagnostics)
   add_sheet(workbook, "legacy_results", legacy_results)
   add_sheet(workbook, "plot_index", plot_index)
+  add_sheet(workbook, "summary_effects", summary_effects)
+  add_sheet(workbook, "summary_heatmap_data", summary_heatmap_data)
+  add_sheet(workbook, "summary_plot_index", summary_plot_index)
   add_sheet(workbook, "diagnostic_plot_index", diagnostic_plot_index)
   add_sheet(workbook, "data_clean", X)
 
@@ -2806,7 +3291,8 @@ analyse_one_workbook <- function(method_name, input_path) {
 
   message("\nCompleted: ", method_name)
   message("Excel: ", output_excel)
-  message("Plots: ", plot_dir)
+  message("Individual plots: ", plot_dir)
+  message("Summary plots: ", summary_plot_dir)
   message("Diagnostics: ", diagnostic_dir)
   message(
     "Valid planned contrasts: ",
@@ -2831,6 +3317,7 @@ analyse_one_workbook <- function(method_name, input_path) {
       fitted_models = fitted_models,
       output_excel = output_excel,
       plot_dir = plot_dir,
+      summary_plot_dir = summary_plot_dir,
       diagnostic_dir = diagnostic_dir
     )
   )
@@ -2838,7 +3325,7 @@ analyse_one_workbook <- function(method_name, input_path) {
 
 
 # ==============================================================================
-# 9. RUN MANUAL AND AUTOMATED ANALYSES
+# 10. RUN MANUAL AND AUTOMATED ANALYSES
 # ==============================================================================
 
 # Create the root output directory before either workbook is analysed.
