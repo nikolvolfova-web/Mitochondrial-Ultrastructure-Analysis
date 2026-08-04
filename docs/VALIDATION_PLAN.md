@@ -3,26 +3,26 @@
 This document defines the validation and release-readiness procedure for the
 Mitochondrial Ultrastructure Analysis repository.
 
-The Python preprocessing workflow and all four R analysis workflows are
+The Python preprocessing workflow and all six R analysis workflows are
 implemented and have passed their GitHub Actions checks. The analyses contained
 in this repository represent the current analytical workflow. Their validated
 outputs will be used in the associated publication.
 
 The remaining work focuses on traceability, internal consistency,
-reproducibility, confidentiality review, documentation, and formal release
-preparation.
+reproducibility, confidentiality review, publication integration, and formal
+release preparation.
 
 ## Validation objectives
 
 The validation has four objectives:
 
-1. verify that every public analytical input has a documented origin;
+1. verify that every repository analytical input has a documented origin;
 2. confirm that all repository workflows execute successfully and create the
    expected outputs;
 3. verify that generated results are internally consistent and ready for use in
    the associated publication;
-4. ensure that the repository is safe, documented, citable, and ready for a
-   versioned GitHub Release and Zenodo archive.
+4. ensure that the repository is safe, documented, citable, and suitable for a
+   later versioned GitHub Release and Zenodo archive.
 
 ## Validation principles
 
@@ -33,8 +33,9 @@ The project follows these principles:
 - manual and automated measurements remain distinct data-generation branches;
 - manual transfer and curation steps are documented explicitly;
 - the repository scripts define the current analytical workflow;
-- exclusions, transformations, and aggregation rules are documented;
-- generated outputs are checked before publication or release;
+- exclusions, transformations, aggregation rules, and statistical models are
+  documented;
+- generated outputs are checked before publication or formal release;
 - confidential, identifying, or unpublished material is not released without
   review;
 - discrepancies are investigated before repository files or publication text
@@ -56,7 +57,6 @@ data/curated/cristae_automated.xlsx
 data/processed/python/all_cristae_instances.csv
 data/processed/python/cristae_counts_per_mito.csv
 data/processed/python/cristae_counts_image_summary.csv
-data/processed/python/README.md
 ```
 
 ### Representative QC example
@@ -77,6 +77,8 @@ scripts/R/prepare_prism_input.R
 scripts/R/analyze-total-cristae.R
 scripts/R/Heterogeneity_subjects.R
 scripts/R/Cristae_LMM.R
+scripts/R/Global_class_profile_across_cristae_labels.R
+scripts/R/cristae_Bland_Altman.R
 ```
 
 ### Automated workflows
@@ -87,6 +89,8 @@ scripts/R/Cristae_LMM.R
 .github/workflows/r-total-cristae.yml
 .github/workflows/r-heterogeneity.yml
 .github/workflows/r-cristae-lmm.yml
+.github/workflows/r-global-class-profile.yml
+.github/workflows/r-cristae-bland-altman.yml
 ```
 
 ## Completed automated validation
@@ -138,9 +142,7 @@ data/curated/cristae_manual.xlsx
 data/curated/cristae_automated.xlsx
 ```
 
-The workflow verifies successful generation of the combined Prism input.
-
-Primary generated file:
+The workflow verifies successful generation of:
 
 ```text
 results/derived/Prism_input.xlsx
@@ -219,6 +221,62 @@ Status:
 Passed
 ```
 
+### 6. Global cristae class-profile analysis
+
+The workflow:
+
+```text
+.github/workflows/r-global-class-profile.yml
+```
+
+runs:
+
+```text
+scripts/R/Global_class_profile_across_cristae_labels.R
+```
+
+against both curated workbooks.
+
+The workflow verifies generation of:
+
+```text
+results/derived/global_class_profile/global_class_profile_data.xlsx
+results/derived/global_class_profile/global_class_profile_dumbbell_colored.png
+results/derived/global_class_profile/global_class_profile_dumbbell_colored.pdf
+```
+
+Status:
+
+```text
+Passed
+```
+
+### 7. Manual-versus-automated agreement analysis
+
+The workflow:
+
+```text
+.github/workflows/r-cristae-bland-altman.yml
+```
+
+runs:
+
+```text
+scripts/R/cristae_Bland_Altman.R
+```
+
+against both curated workbooks.
+
+The workflow verifies the statistical workbook, text summaries, R session
+information, and Bland-Altman, scatter, and combined figures exported as PDF,
+PNG, and TIFF.
+
+Status:
+
+```text
+Passed
+```
+
 ## Validation stages
 
 ## Stage 1 — Preserve source and reference files
@@ -242,7 +300,7 @@ For each reference file, record where practical:
 - analytical purpose;
 - source or creator;
 - SHA-256 checksum;
-- private storage location.
+- protected storage location.
 
 These files are preserved for traceability. The current repository analysis is
 not required to reproduce an earlier analytical implementation exactly.
@@ -270,9 +328,11 @@ Review:
 - implausible numerical values;
 - compatibility with all downstream R workflows.
 
-The workbook has passed operational validation because the relevant R workflows
-execute successfully against it. The final release audit should also confirm
-that the workbook schema is documented clearly enough for an external user.
+The workbook has passed operational validation because all relevant R workflows
+execute successfully against it.
+
+Before formal public release, confirm that its schema is documented clearly
+enough for an external user and that workbook metadata have been reviewed.
 
 ## Stage 3 — Automated workbook audit
 
@@ -303,7 +363,7 @@ The comparison should verify:
 - decimal and data-type conversions;
 - missing-value handling;
 - documented manual exclusions;
-- correspondence between the curated workbook and the visual QC decisions.
+- correspondence between the curated workbook and visual QC decisions.
 
 The expected relationship is:
 
@@ -347,13 +407,13 @@ Rscript scripts/R/prepare_prism_input.R
 
 Verify:
 
-- the two curated workbooks are read successfully;
+- both curated workbooks are read successfully;
 - the expected worksheets and columns are found;
-- manual and automated records are paired as intended;
+- manual and automated records are joined as intended;
 - missing images are reported;
 - output dimensions are plausible;
 - the generated workbook contains the expected sheets;
-- the generated values agree with the validated repository inputs.
+- generated values agree with the repository inputs.
 
 Primary output:
 
@@ -436,7 +496,7 @@ Run:
 Rscript scripts/R/Cristae_LMM.R
 ```
 
-Verify separately for manual and automated workbooks:
+Verify separately for the manual and automated workbooks:
 
 - imported worksheets and columns;
 - globally unique `ID_cluster` construction;
@@ -479,7 +539,90 @@ Publication integration status:
 Ready for reporting after final result review
 ```
 
-## Stage 9 — Software environment capture
+## Stage 9 — Global cristae class-profile verification
+
+Run:
+
+```bash
+Rscript scripts/R/Global_class_profile_across_cristae_labels.R
+```
+
+Verify:
+
+- both curated workbooks are read directly;
+- all required columns from `Label 2` through `Label 12` are identified;
+- repeated non-numeric header rows are not included in totals;
+- valid values are summed separately for manual and automated methods;
+- relative abundances sum to approximately 100% within each method;
+- label order is preserved from `Label 2` through `Label 12`;
+- the exported Excel table matches the values plotted;
+- PNG and PDF figures are readable and non-empty;
+- output paths match the documentation.
+
+Primary outputs:
+
+```text
+results/derived/global_class_profile/global_class_profile_data.xlsx
+results/derived/global_class_profile/global_class_profile_dumbbell_colored.png
+results/derived/global_class_profile/global_class_profile_dumbbell_colored.pdf
+```
+
+Automated workflow status:
+
+```text
+Passed
+```
+
+Publication integration status:
+
+```text
+Ready for reporting after final figure review
+```
+
+## Stage 10 — Manual-versus-automated agreement verification
+
+Run:
+
+```bash
+Rscript scripts/R/cristae_Bland_Altman.R
+```
+
+Verify:
+
+- both curated workbooks are read directly;
+- Label 2-Label 12 counts are aggregated correctly at image level;
+- pairing uses worksheet name and image identifier rather than row order;
+- duplicate pairing keys are absent;
+- manual and automated image sets pair completely;
+- the difference is defined as `automated - manual`;
+- bias and 95% limits of agreement are calculated as documented;
+- confidence intervals are exported correctly;
+- Pearson correlation is reported separately from agreement;
+- the ordinary least-squares regression matches the exported plot;
+- proportional-bias and Shapiro-Wilk diagnostics are exported;
+- the statistical workbook and text summary agree;
+- PDF, PNG, and TIFF figures are readable and non-empty;
+- the combined panel contains both expected plots.
+
+Primary output root:
+
+```text
+results/derived/cristae_bland_altman/
+```
+
+Automated workflow status:
+
+```text
+Passed
+```
+
+Publication integration status:
+
+```text
+Ready for reporting after final result and figure review
+```
+
+## Stage 11 — Software environment capture
 
 ### Python
 
@@ -489,7 +632,7 @@ The Python dependency record is stored in:
 requirements-python.txt
 ```
 
-Before release, verify:
+Before formal release, verify:
 
 - supported Python version;
 - clean installation in a new environment;
@@ -498,18 +641,24 @@ Before release, verify:
 
 ### R
 
-The workflows install the packages required by the individual scripts. The LMM
-output also records session information in its generated result workbook.
+The workflows install the packages required by the individual scripts.
+
+The LMM workflow records session information in its generated result workbook.
+The Bland-Altman workflow exports:
+
+```text
+results/derived/cristae_bland_altman/R_session_info.txt
+```
 
 Before formal release, decide whether to:
 
-1. add an `renv.lock` file; or
-2. document the exact package versions used for the release in another
+1. add a verified `renv.lock` file; or
+2. document the exact R and package versions used for the release in another
    reproducible form.
 
 Do not claim an R dependency lock while no verified lock file exists.
 
-## Stage 10 — Publication reporting integration
+## Stage 12 — Publication reporting integration
 
 The publication should use the validated outputs generated by the current
 repository workflows.
@@ -521,9 +670,12 @@ Before submission, verify that:
 - model coefficients and effect measures are reported correctly;
 - contrasts and confidence intervals match the exported results;
 - raw and adjusted p-values are distinguished;
+- Bland-Altman bias and limits of agreement match the exported results;
+- Pearson correlation is not presented as evidence of agreement;
+- global class-profile values match the exported summary table;
 - figure labels match the generated plots;
-- the Methods section describes the current implemented workflow;
-- the Results section reflects the current analysis;
+- the Methods section describes the currently implemented workflows;
+- the Results section reflects the current analyses;
 - statements in the abstract and conclusions are supported by the current
   results;
 - repository version and release information are cited consistently.
@@ -531,13 +683,14 @@ Before submission, verify that:
 This is not a comparison against an earlier article version. The article is
 expected to be updated to reflect the validated repository analyses.
 
-## Stage 11 — Documentation consistency audit
+## Stage 13 — Documentation consistency audit
 
 Verify consistency across:
 
 ```text
 README.md
 scripts/README.md
+data/README.md
 docs/DATA_PROVENANCE.md
 docs/VALIDATION_PLAN.md
 CITATION.cff
@@ -559,7 +712,9 @@ Check:
 - release date;
 - license;
 - workflow names;
+- script names;
 - file paths;
+- input and output descriptions;
 - data-availability statements;
 - article citation;
 - DOI values;
@@ -613,6 +768,8 @@ Examples:
 
 - inconsistent model formula between code and documentation;
 - incorrect random-effects description;
+- incorrect Bland-Altman difference definition;
+- incorrect limit-of-agreement calculation;
 - incorrect offset;
 - incorrect contrast;
 - inconsistent analysis population;
@@ -627,7 +784,8 @@ validated current analysis, for example:
 - an incorrect table or figure value;
 - an incorrect significance statement;
 - an outdated method description;
-- an interpretation unsupported by the current analysis.
+- an interpretation unsupported by the current analysis;
+- correlation incorrectly described as agreement.
 
 ## Priority levels
 
@@ -661,10 +819,10 @@ The repository is ready for a formal software release only when:
 
 - source and reference files have been inventoried where applicable;
 - curated workbook schemas are documented;
-- the automated workbook has been checked against the processed Python outputs
-  and curation records;
+- the automated workbook has been checked against processed Python outputs and
+  curation records;
 - the representative QC example has passed confidentiality review;
-- all five GitHub Actions workflows pass on the release candidate;
+- all seven GitHub Actions workflows pass on the release candidate;
 - generated R outputs have been reviewed;
 - publication text has been updated to use the current validated results;
 - discrepancies are resolved or transparently documented;
@@ -696,6 +854,10 @@ The repository is ready for a formal software release only when:
 | Subject-heterogeneity GitHub Actions workflow | Passed |
 | Manual and automated LMM script | Implemented |
 | LMM GitHub Actions workflow | Passed |
+| Global cristae class-profile script | Implemented |
+| Global class-profile GitHub Actions workflow | Passed |
+| Manual-versus-automated agreement script | Implemented |
+| Bland-Altman GitHub Actions workflow | Passed |
 | Expected R output verification | Passed |
 | Python CSV-to-workbook traceability audit | Pending final release audit |
 | Source and reference-file inventory | Pending verification |

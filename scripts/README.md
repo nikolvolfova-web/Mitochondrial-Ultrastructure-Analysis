@@ -1,6 +1,6 @@
 # Analysis Scripts
 
-This directory contains the Python preprocessing workflow and the four R
+This directory contains the Python preprocessing workflow and the six R
 analysis workflows used in the mitochondrial ultrastructure and cristae
 analysis.
 
@@ -11,10 +11,12 @@ All commands below are intended to be run from the repository root.
 ```text
 scripts/
 ├── R/
-│   ├── prepare_prism_input.R
-│   ├── analyze-total-cristae.R
+│   ├── Cristae_LMM.R
+│   ├── Global_class_profile_across_cristae_labels.R
 │   ├── Heterogeneity_subjects.R
-│   └── Cristae_LMM.R
+│   ├── analyze-total-cristae.R
+│   ├── cristae_Bland_Altman.R
+│   └── prepare_prism_input.R
 ├── python/
 │   └── count_cristae_per_mito.py
 └── README.md
@@ -63,6 +65,12 @@ flowchart TD
 
     M2 --> L["scripts/R/Cristae_LMM.R"]
     A --> L
+
+    M2 --> G["scripts/R/Global_class_profile_across_cristae_labels.R"]
+    A --> G
+
+    M2 --> BA["scripts/R/cristae_Bland_Altman.R"]
+    A --> BA
 ```
 
 ## Python preprocessing
@@ -128,20 +136,30 @@ The same test suite is executed by:
 
 ## R workflow order
 
-Run the R workflows from the repository root in this order:
+Run all R workflows from the repository root.
+
+The recommended complete sequence is:
 
 ```bash
 Rscript scripts/R/prepare_prism_input.R
 Rscript scripts/R/analyze-total-cristae.R
 Rscript scripts/R/Heterogeneity_subjects.R
 Rscript scripts/R/Cristae_LMM.R
+Rscript scripts/R/Global_class_profile_across_cristae_labels.R
+Rscript scripts/R/cristae_Bland_Altman.R
 ```
 
-The first workflow creates the combined Prism input required by the
-total-cristae and heterogeneity analyses.
+`prepare_prism_input.R` creates the combined Prism input required by
+`analyze-total-cristae.R` and `Heterogeneity_subjects.R`.
 
-`Cristae_LMM.R` does not use `Prism_input.xlsx`. It reads the manual and
-automated curated workbooks directly.
+The following workflows read the manual and automated curated workbooks
+directly and do not depend on `Prism_input.xlsx`:
+
+```text
+scripts/R/Cristae_LMM.R
+scripts/R/Global_class_profile_across_cristae_labels.R
+scripts/R/cristae_Bland_Altman.R
+```
 
 ## 1. Prism input preparation
 
@@ -379,21 +397,142 @@ Separate `manual/` and `automated/` directories contain:
 .github/workflows/r-cristae-lmm.yml
 ```
 
+## 5. Global cristae class-profile analysis
+
+### Script
+
+```text
+scripts/R/Global_class_profile_across_cristae_labels.R
+```
+
+### Inputs
+
+```text
+data/curated/cristae_manual.xlsx
+data/curated/cristae_automated.xlsx
+```
+
+### Processing
+
+The workflow:
+
+- reads all relevant worksheets from both curated workbooks;
+- identifies the columns `Label 2` through `Label 12`;
+- sums valid values separately for the manual and automated methods;
+- calculates the relative abundance of each class within each method;
+- generates a dumbbell plot comparing both global class profiles.
+
+For each method, relative abundance is calculated as:
+
+```text
+label total / total across Label 2-Label 12 × 100
+```
+
+### Outputs
+
+```text
+results/derived/global_class_profile/global_class_profile_data.xlsx
+results/derived/global_class_profile/global_class_profile_dumbbell_colored.png
+results/derived/global_class_profile/global_class_profile_dumbbell_colored.pdf
+```
+
+### GitHub Actions
+
+```text
+.github/workflows/r-global-class-profile.yml
+```
+
+## 6. Manual-versus-automated agreement analysis
+
+### Script
+
+```text
+scripts/R/cristae_Bland_Altman.R
+```
+
+### Inputs
+
+```text
+data/curated/cristae_manual.xlsx
+data/curated/cristae_automated.xlsx
+```
+
+### Processing
+
+The workflow:
+
+- aggregates `Label 2` through `Label 12` to one total count per image;
+- pairs manual and automated measurements by worksheet and image identifier;
+- stops if duplicate keys or incomplete pairing are detected;
+- performs Bland-Altman agreement analysis;
+- calculates Pearson correlation;
+- fits an ordinary least-squares linear regression;
+- evaluates proportional bias;
+- reports a Shapiro-Wilk diagnostic for paired differences;
+- exports paired data, statistical results, summaries, and figures.
+
+The Bland-Altman difference is defined as:
+
+```text
+automated - manual
+```
+
+The 95% limits of agreement are calculated as:
+
+```text
+bias ± 1.96 × SD of paired differences
+```
+
+Pearson correlation and linear regression quantify association and are reported
+separately from agreement.
+
+### Output root
+
+```text
+results/derived/cristae_bland_altman/
+```
+
+### Statistical and audit outputs
+
+```text
+cristae_manual_vs_automated_results.xlsx
+analysis_summary.txt
+R_session_info.txt
+```
+
+### Figure outputs
+
+Each plot is exported as PDF, PNG, and TIFF:
+
+```text
+Bland_Altman_agreement_plot
+Manual_vs_automated_scatter_plot
+Bland_Altman_and_scatter_panel
+```
+
+### GitHub Actions
+
+```text
+.github/workflows/r-cristae-bland-altman.yml
+```
+
 ## Automated validation
 
-The repository contains five GitHub Actions workflows.
+The repository contains seven GitHub Actions workflows.
 
 | Workflow | Check | Status |
 | --- | --- | --- |
 | `python-tests.yml` | Synthetic Python test suite | Passed |
-| `r-prepare-prism.yml` | Full R workflow execution and expected-output verification | Passed |
-| `r-total-cristae.yml` | Full R workflow execution and expected-output verification | Passed |
-| `r-heterogeneity.yml` | Full R workflow execution and expected-output verification | Passed |
-| `r-cristae-lmm.yml` | Full R workflow execution and expected-output verification | Passed |
+| `r-prepare-prism.yml` | Prism-input execution and expected-output verification | Passed |
+| `r-total-cristae.yml` | Total-cristae execution and expected-output verification | Passed |
+| `r-heterogeneity.yml` | Subject-heterogeneity execution and expected-output verification | Passed |
+| `r-cristae-lmm.yml` | Manual and automated LMM execution and expected-output verification | Passed |
+| `r-global-class-profile.yml` | Global class-profile execution and output verification | Passed |
+| `r-cristae-bland-altman.yml` | Agreement-analysis execution and output verification | Passed |
 
 The Python workflow is covered by synthetic tests. The R workflows are covered
-by end-to-end integration checks that run the complete scripts against the
-curated repository inputs and verify the expected generated outputs.
+by integration checks that run the complete scripts against the curated
+repository inputs and verify the expected generated outputs.
 
 ## Generated outputs
 

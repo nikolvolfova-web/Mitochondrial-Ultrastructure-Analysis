@@ -1,0 +1,100 @@
+name: Test cristae Bland-Altman analysis
+
+on:
+  pull_request:
+    paths:
+      - "scripts/R/cristae_Bland_Altman.R"
+      - "data/curated/cristae_manual.xlsx"
+      - "data/curated/cristae_automated.xlsx"
+      - ".github/workflows/r-cristae-bland-altman.yml"
+
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/R/cristae_Bland_Altman.R"
+      - "data/curated/cristae_manual.xlsx"
+      - "data/curated/cristae_automated.xlsx"
+      - ".github/workflows/r-cristae-bland-altman.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cristae-bland-altman-analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Verify input files
+        run: |
+          test -f scripts/R/cristae_Bland_Altman.R
+          test -f data/curated/cristae_manual.xlsx
+          test -f data/curated/cristae_automated.xlsx
+
+      - name: Install required R packages
+        run: |
+          Rscript -e '
+            install.packages(
+              c(
+                "readxl",
+                "dplyr",
+                "ggplot2",
+                "openxlsx",
+                "patchwork",
+                "scales"
+              )
+            )
+          '
+
+      - name: Run cristae Bland-Altman analysis
+        run: |
+          Rscript scripts/R/cristae_Bland_Altman.R
+
+      - name: Verify statistical outputs
+        run: |
+          test -f results/derived/cristae_bland_altman/cristae_manual_vs_automated_results.xlsx
+          test -f results/derived/cristae_bland_altman/analysis_summary.txt
+          test -f results/derived/cristae_bland_altman/R_session_info.txt
+
+      - name: Verify Bland-Altman figures
+        run: |
+          test -f results/derived/cristae_bland_altman/Bland_Altman_agreement_plot.pdf
+          test -f results/derived/cristae_bland_altman/Bland_Altman_agreement_plot.png
+          test -f results/derived/cristae_bland_altman/Bland_Altman_agreement_plot.tiff
+
+      - name: Verify scatter figures
+        run: |
+          test -f results/derived/cristae_bland_altman/Manual_vs_automated_scatter_plot.pdf
+          test -f results/derived/cristae_bland_altman/Manual_vs_automated_scatter_plot.png
+          test -f results/derived/cristae_bland_altman/Manual_vs_automated_scatter_plot.tiff
+
+      - name: Verify combined figures
+        run: |
+          test -f results/derived/cristae_bland_altman/Bland_Altman_and_scatter_panel.pdf
+          test -f results/derived/cristae_bland_altman/Bland_Altman_and_scatter_panel.png
+          test -f results/derived/cristae_bland_altman/Bland_Altman_and_scatter_panel.tiff
+
+      - name: Show generated files
+        run: |
+          find results/derived/cristae_bland_altman -maxdepth 1 -type f -print
+
+      - name: Upload cristae Bland-Altman results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cristae-bland-altman-results
+          path: |
+            results/derived/cristae_bland_altman/**
+          if-no-files-found: error
+          retention-days: 14

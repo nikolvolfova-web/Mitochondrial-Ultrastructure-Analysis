@@ -4,10 +4,9 @@ Pre-release repository for computational preprocessing, quality control, and
 statistical analysis of mitochondrial ultrastructure and cristae morphology
 data.
 
-> **Project status:** The Python preprocessing workflow and all four R analysis
-> workflows are implemented and have passed their GitHub Actions checks. The
-> repository has not yet been formally released, archived in Zenodo, or assigned
-> a DOI.
+> **Project status:** The Python preprocessing workflow and all six R workflows
+> are implemented and have passed their GitHub Actions checks. The repository
+> has not yet been formally released, archived in Zenodo, or assigned a DOI.
 
 ## Project scope
 
@@ -33,9 +32,9 @@ maintained outside this repository and are not duplicated here.
 
 ## Authors and contributions
 
-* **Nikol Volfová** — manual data evaluation, R-based statistical analyses,
+- **Nikol Volfová** — manual data evaluation, R-based statistical analyses,
   repository integration, documentation, testing, and maintenance.
-* **Martin Čapek** ([LMCF-IMG](https://github.com/LMCF-IMG)) — original author
+- **Martin Čapek** ([LMCF-IMG](https://github.com/LMCF-IMG)) — original author
   of the Python preprocessing script and its core computational logic.
 
 The repository version of the Python script was adapted for portable
@@ -71,9 +70,17 @@ flowchart TD
     M2 --> LMM["scripts/R/Cristae_LMM.R"]
     A --> LMM
 
+    M2 --> GCP["scripts/R/Global_class_profile_across_cristae_labels.R"]
+    A --> GCP
+
+    M2 --> BA["scripts/R/cristae_Bland_Altman.R"]
+    A --> BA
+
     T --> O1["Total-cristae tables and diagnostics"]
     H --> O2["Subject-level heterogeneity outputs"]
     LMM --> O3["LMM tables, plots, summaries, and diagnostics"]
+    GCP --> O4["Global class-profile table and figures"]
+    BA --> O5["Agreement statistics, tables, and figures"]
 ```
 
 ## Data provenance and quality control
@@ -147,7 +154,9 @@ Detailed provenance and curation information is provided in
 ├── .github/
 │   └── workflows/
 │       ├── python-tests.yml
+│       ├── r-cristae-bland-altman.yml
 │       ├── r-cristae-lmm.yml
+│       ├── r-global-class-profile.yml
 │       ├── r-heterogeneity.yml
 │       ├── r-prepare-prism.yml
 │       └── r-total-cristae.yml
@@ -155,12 +164,12 @@ Detailed provenance and curation information is provided in
 │   ├── curated/
 │   │   ├── cristae_automated.xlsx
 │   │   └── cristae_manual.xlsx
-│   └── processed/
-│       └── python/
-│           ├── all_cristae_instances.csv
-│           ├── cristae_counts_image_summary.csv
-│           ├── cristae_counts_per_mito.csv
-│           └── README.md
+│   ├── processed/
+│   │   └── python/
+│   │       ├── all_cristae_instances.csv
+│   │       ├── cristae_counts_image_summary.csv
+│   │       └── cristae_counts_per_mito.csv
+│   └── README.md
 ├── docs/
 │   ├── qc_examples/
 │   │   └── C2_002_30000x/
@@ -176,8 +185,10 @@ Detailed provenance and curation information is provided in
 ├── scripts/
 │   ├── R/
 │   │   ├── Cristae_LMM.R
+│   │   ├── Global_class_profile_across_cristae_labels.R
 │   │   ├── Heterogeneity_subjects.R
 │   │   ├── analyze-total-cristae.R
+│   │   ├── cristae_Bland_Altman.R
 │   │   └── prepare_prism_input.R
 │   ├── python/
 │   │   └── count_cristae_per_mito.py
@@ -257,7 +268,7 @@ filenames, local paths, and embedded metadata have passed review.
 
 ## R analysis workflows
 
-The R workflows should be run from the repository root.
+All R workflows should be run from the repository root.
 
 ### 1. Prepare the combined Prism input
 
@@ -317,16 +328,16 @@ Planned contrasts compare Controls with patient groups P1-P10.
 
 The workflow exports:
 
-* structured Excel workbooks;
-* quality-control and numeric-conversion audits;
-* descriptive statistics;
-* model-estimated means;
-* planned contrasts;
-* raw and Benjamini-Hochberg adjusted p-values;
-* significant-result and review-required tables;
-* individual plots;
-* summary heatmaps and contrast overviews;
-* residual-versus-fitted and Q-Q diagnostic plots.
+- structured Excel workbooks;
+- quality-control and numeric-conversion audits;
+- descriptive statistics;
+- model-estimated means;
+- planned contrasts;
+- raw and Benjamini-Hochberg adjusted p-values;
+- significant-result and review-required tables;
+- individual plots;
+- summary heatmaps and contrast overviews;
+- residual-versus-fitted and Q-Q diagnostic plots.
 
 Primary output root:
 
@@ -334,22 +345,96 @@ Primary output root:
 results/derived/cristae_lmm_safe/
 ```
 
+### 5. Generate the global cristae class profile
+
+```bash
+Rscript scripts/R/Global_class_profile_across_cristae_labels.R
+```
+
+Inputs:
+
+```text
+data/curated/cristae_manual.xlsx
+data/curated/cristae_automated.xlsx
+```
+
+The workflow sums valid values for `Label 2` through `Label 12` separately for
+the manual and automated workbooks, calculates the relative abundance of each
+class within each method, and generates a dumbbell plot comparing both class
+profiles.
+
+Primary outputs:
+
+```text
+results/derived/global_class_profile/global_class_profile_data.xlsx
+results/derived/global_class_profile/global_class_profile_dumbbell_colored.png
+results/derived/global_class_profile/global_class_profile_dumbbell_colored.pdf
+```
+
+### 6. Analyse agreement between manual and automated cristae counts
+
+```bash
+Rscript scripts/R/cristae_Bland_Altman.R
+```
+
+Inputs:
+
+```text
+data/curated/cristae_manual.xlsx
+data/curated/cristae_automated.xlsx
+```
+
+The workflow:
+
+- aggregates `Label 2` through `Label 12` to one total cristae count per image;
+- pairs manual and automated measurements by worksheet and image identifier;
+- performs Bland-Altman agreement analysis;
+- calculates Pearson correlation and ordinary least-squares regression;
+- evaluates proportional bias and the distribution of paired differences;
+- exports processed data, statistics, diagnostics, summaries, and
+  publication-quality figures.
+
+Primary output root:
+
+```text
+results/derived/cristae_bland_altman/
+```
+
+The generated files include:
+
+```text
+cristae_manual_vs_automated_results.xlsx
+analysis_summary.txt
+R_session_info.txt
+Bland_Altman_agreement_plot.pdf
+Bland_Altman_agreement_plot.png
+Bland_Altman_agreement_plot.tiff
+Manual_vs_automated_scatter_plot.pdf
+Manual_vs_automated_scatter_plot.png
+Manual_vs_automated_scatter_plot.tiff
+Bland_Altman_and_scatter_panel.pdf
+Bland_Altman_and_scatter_panel.png
+Bland_Altman_and_scatter_panel.tiff
+```
+
 Additional script-level documentation is provided in
 [`scripts/README.md`](scripts/README.md).
 
 ## GitHub Actions
 
-The repository contains five automated workflows:
+The repository contains seven automated workflows:
 
-| Workflow file                           | Purpose                                                                |
-| --------------------------------------- | ---------------------------------------------------------------------- |
-| `.github/workflows/python-tests.yml`    | Runs the synthetic Python test suite.                                  |
-| `.github/workflows/r-prepare-prism.yml` | Runs Prism input preparation and verifies the generated workbook.      |
-| `.github/workflows/r-total-cristae.yml` | Runs the total-cristae analysis and verifies its outputs.              |
-| `.github/workflows/r-heterogeneity.yml` | Runs the subject-heterogeneity analysis and verifies its outputs.      |
-| `.github/workflows/r-cristae-lmm.yml`   | Runs the manual and automated LMM analyses and verifies their outputs. |
+| Workflow file | Purpose |
+| --- | --- |
+| `.github/workflows/python-tests.yml` | Runs the synthetic Python test suite. |
+| `.github/workflows/r-prepare-prism.yml` | Runs Prism input preparation and verifies the generated workbook. |
+| `.github/workflows/r-total-cristae.yml` | Runs the total-cristae analysis and verifies its outputs. |
+| `.github/workflows/r-heterogeneity.yml` | Runs the subject-heterogeneity analysis and verifies its outputs. |
+| `.github/workflows/r-cristae-lmm.yml` | Runs the manual and automated LMM analyses and verifies their outputs. |
+| `.github/workflows/r-global-class-profile.yml` | Runs the global cristae class-profile analysis and verifies its table and figures. |
+| `.github/workflows/r-cristae-bland-altman.yml` | Runs the manual-versus-automated agreement analysis and verifies its statistical and figure outputs. |
 
-All five workflows passed during the current pre-release validation.
+All seven workflows passed during the current pre-release validation.
 
 The Python workflow is covered by synthetic tests. The R workflows are covered
 by integration checks that execute the complete analysis scripts against the
@@ -367,44 +452,49 @@ python -m unittest discover -s tests/python -p "test_*.py" -v
 
 ### R workflow validation
 
-Run the four R scripts from the repository root in this order:
+Run the six R scripts from the repository root:
 
 ```bash
 Rscript scripts/R/prepare_prism_input.R
 Rscript scripts/R/analyze-total-cristae.R
 Rscript scripts/R/Heterogeneity_subjects.R
 Rscript scripts/R/Cristae_LMM.R
+Rscript scripts/R/Global_class_profile_across_cristae_labels.R
+Rscript scripts/R/cristae_Bland_Altman.R
 ```
 
-The first script creates the shared Prism input required by the total-cristae
-and heterogeneity workflows.
+`prepare_prism_input.R` creates the shared Prism input required by the
+total-cristae and heterogeneity workflows.
 
-`Cristae_LMM.R` reads the two curated workbooks directly and does not depend on
-`Prism_input.xlsx`.
+`Cristae_LMM.R`, `Global_class_profile_across_cristae_labels.R`, and
+`cristae_Bland_Altman.R` read the two curated workbooks directly and do not
+depend on `Prism_input.xlsx`.
 
 The current validation and future release-readiness work are documented in
 [`docs/VALIDATION_PLAN.md`](docs/VALIDATION_PLAN.md).
 
 ## Current status
 
-| Component                               | Status                 |
-| --------------------------------------- | ---------------------- |
-| Python preprocessing script             | Included               |
-| Python dependency record                | Included               |
-| Python synthetic tests                  | Passed                 |
-| Python GitHub Actions workflow          | Passed                 |
-| Processed Python CSV files              | Included               |
-| Curated manual workbook                 | Included               |
-| Curated automated workbook              | Included               |
-| Representative QC example               | Included               |
-| Prism input preparation workflow        | Implemented and passed |
-| Total-cristae analysis workflow         | Implemented and passed |
-| Subject-heterogeneity workflow          | Implemented and passed |
-| Cristae LMM workflow                    | Implemented and passed |
-| Verification of expected R output files | Passed                 |
-| Root-level citation metadata            | Included               |
-| Formal versioned release                | Not yet created        |
-| Zenodo archive and DOI                  | Not yet created        |
+| Component | Status |
+| --- | --- |
+| Python preprocessing script | Included |
+| Python dependency record | Included |
+| Python synthetic tests | Passed |
+| Python GitHub Actions workflow | Passed |
+| Processed Python CSV files | Included |
+| Curated manual workbook | Included |
+| Curated automated workbook | Included |
+| Representative QC example | Included |
+| Prism input preparation workflow | Implemented and passed |
+| Total-cristae analysis workflow | Implemented and passed |
+| Subject-heterogeneity workflow | Implemented and passed |
+| Cristae LMM workflow | Implemented and passed |
+| Global cristae class-profile workflow | Implemented and passed |
+| Manual-versus-automated agreement workflow | Implemented and passed |
+| Verification of expected R output files | Passed |
+| Root-level citation metadata | Included |
+| Formal versioned release | Not yet created |
+| Zenodo archive and DOI | Not yet created |
 
 The analyses contained in this repository represent the current analytical
 workflow. Their validated outputs will be used in the associated publication.
@@ -417,20 +507,20 @@ separately.
 
 The repository includes:
 
-* the two curated analytical workbooks;
-* the three processed Python CSV files;
-* one representative QC example;
-* the Python and R analysis scripts;
-* automated validation workflows.
+- the two curated analytical workbooks;
+- the three processed Python CSV files;
+- one representative QC example;
+- the Python and R analysis scripts;
+- automated validation workflows.
 
 The repository does not include:
 
-* raw microscopy images;
-* the complete upstream segmentation dataset;
-* complete patient-level QC material;
-* confidential manuscript files;
-* protected source metadata;
-* generated results that have not been approved for public release.
+- raw microscopy images;
+- the complete upstream segmentation dataset;
+- complete patient-level QC material;
+- confidential manuscript files;
+- protected source metadata;
+- generated results that have not been approved for public release.
 
 Before additional research-derived files are released, they should be reviewed
 for subject or sample identifiers, filenames, local paths, embedded metadata,
@@ -446,11 +536,11 @@ citation once its final bibliographic metadata are available.
 
 The following information will be added after verification and formal release:
 
-* software version;
-* release date;
-* verified author affiliations;
-* article title, journal, publication year, and DOI;
-* Zenodo version DOI and concept DOI.
+- software version;
+- release date;
+- verified author affiliations;
+- article title, journal, publication year, and DOI;
+- Zenodo version DOI and concept DOI.
 
 Verified ORCID identifiers are included in `CITATION.cff`.
 

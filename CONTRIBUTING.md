@@ -42,18 +42,19 @@ Appropriate contributions include:
 - release and citation metadata updates.
 
 Changes to the scientific analysis must be clearly justified and must not be
-presented as equivalent to the validated workflow unless the results have been
-independently reviewed.
+presented as equivalent to the validated workflow unless the modified workflow
+and its outputs have been independently reviewed.
 
 ## Repository layout
 
 ```text
-scripts/R/        R analysis workflows
-scripts/python/   Python preprocessing workflow
-tests/python/     Synthetic Python tests
-data/curated/     Curated analytical input workbooks
-.github/workflows/ Automated validation workflows
-results/derived/  Generated outputs; not committed by default
+scripts/R/          R analysis workflows
+scripts/python/     Python preprocessing workflow
+tests/python/       Synthetic Python tests
+data/curated/       Curated analytical input workbooks
+data/processed/     Processed computational outputs
+.github/workflows/  Automated validation workflows
+results/derived/    Generated outputs; not committed by default
 ```
 
 ## Development workflow
@@ -120,13 +121,30 @@ scripts/R/
 
 Run workflows from the repository root.
 
-Recommended order:
+The complete sequence is:
 
 ```bash
 Rscript scripts/R/prepare_prism_input.R
 Rscript scripts/R/analyze-total-cristae.R
 Rscript scripts/R/Heterogeneity_subjects.R
 Rscript scripts/R/Cristae_LMM.R
+Rscript scripts/R/Global_class_profile_across_cristae_labels.R
+Rscript scripts/R/cristae_Bland_Altman.R
+```
+
+`prepare_prism_input.R` generates the shared input required by:
+
+```text
+scripts/R/analyze-total-cristae.R
+scripts/R/Heterogeneity_subjects.R
+```
+
+The following workflows read the two curated workbooks directly:
+
+```text
+scripts/R/Cristae_LMM.R
+scripts/R/Global_class_profile_across_cristae_labels.R
+scripts/R/cristae_Bland_Altman.R
 ```
 
 The corresponding GitHub Actions workflows are:
@@ -136,6 +154,8 @@ The corresponding GitHub Actions workflows are:
 .github/workflows/r-total-cristae.yml
 .github/workflows/r-heterogeneity.yml
 .github/workflows/r-cristae-lmm.yml
+.github/workflows/r-global-class-profile.yml
+.github/workflows/r-cristae-bland-altman.yml
 ```
 
 A change to an R script should include validation of the workflow that uses it.
@@ -144,7 +164,7 @@ one workflow.
 
 ## Scientific-analysis changes
 
-Do not change statistical logic silently.
+Do not change statistical or analytical logic silently.
 
 A pull request that modifies an analysis must document:
 
@@ -153,11 +173,15 @@ A pull request that modifies an analysis must document:
 - the reason for the change;
 - affected inputs and outputs;
 - expected effect on results;
-- validation against previous outputs, when available;
-- any new assumptions or limitations.
+- any new assumptions or limitations;
+- the procedure used to validate the modified workflow.
 
 Changes that alter numerical results should be reviewed separately from purely
 documentary or structural changes.
+
+The associated publication is expected to use results from the current
+validated repository workflows. Repository validation does not require
+comparison with an earlier version of the manuscript.
 
 ## Data and confidentiality
 
@@ -165,7 +189,7 @@ Never commit:
 
 - passwords, access tokens, API keys, or credentials;
 - private SSH keys;
-- personal or subject identifiers;
+- direct personal or subject identifiers;
 - confidential metadata;
 - protected local filesystem paths;
 - raw microscopy images unless release has been explicitly approved;
@@ -177,6 +201,12 @@ Curated analytical inputs belong under:
 
 ```text
 data/curated/
+```
+
+Processed computational reference outputs belong under:
+
+```text
+data/processed/
 ```
 
 Generated outputs belong under:
@@ -201,10 +231,11 @@ If a secret or confidential file is committed accidentally:
 Documentation should:
 
 - use the actual repository paths and file names;
-- distinguish validated workflows from planned work;
+- distinguish validated workflows from planned release work;
 - avoid claiming unavailable test results or DOI values;
 - identify unknown values with `TODO` or explicit placeholders;
-- remain consistent with `README.md`, `scripts/README.md`, `CITATION.cff`,
+- remain consistent with `README.md`, `scripts/README.md`,
+  `docs/DATA_PROVENANCE.md`, `docs/VALIDATION_PLAN.md`, `CITATION.cff`,
   release notes, and Zenodo metadata.
 
 ## Pull-request checklist
