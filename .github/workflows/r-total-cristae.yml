@@ -1,14 +1,21 @@
 name: Test total cristae analysis
 
 on:
-  push:
-    branches:
-      - scripts/R/analyze-total-cristae.R
+  pull_request:
     paths:
       - "scripts/R/prepare_prism_input.R"
-      - "scripts/Stat_total_cristae.R"
+      - "scripts/R/analyze-total-cristae.R"
       - "data/curated/**"
-      - ".github/workflows/r-prepare-prism.yml"
+      - ".github/workflows/r-total-cristae.yml"
+
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/R/prepare_prism_input.R"
+      - "scripts/R/analyze-total-cristae.R"
+      - "data/curated/**"
+      - ".github/workflows/r-total-cristae.yml"
 
   workflow_dispatch:
 
@@ -28,6 +35,13 @@ jobs:
         uses: r-lib/actions/setup-r@v2
         with:
           use-public-rspm: true
+
+      - name: Verify input files
+        run: |
+          test -f scripts/R/prepare_prism_input.R
+          test -f scripts/R/analyze-total-cristae.R
+          test -f data/curated/cristae_manual.xlsx
+          test -f data/curated/cristae_automated.xlsx
 
       - name: Install required R packages
         run: |
@@ -75,6 +89,7 @@ jobs:
           find results/derived -maxdepth 3 -type f -print
 
       - name: Upload total cristae results
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: total-cristae-analysis-results
