@@ -179,9 +179,8 @@ A pull request that modifies an analysis must document:
 Changes that alter numerical results should be reviewed separately from purely
 documentary or structural changes.
 
-The associated publication is expected to use results from the current
-validated repository workflows. Repository validation does not require
-comparison with an earlier version of the manuscript.
+The curated data and analytical outputs in this repository are those reported
+in the associated publication.
 
 ## Data and confidentiality
 
