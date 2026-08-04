@@ -1,46 +1,44 @@
 # Mitochondrial Ultrastructure Analysis
 
-Pre-release companion repository for Python preprocessing and R-based statistical analysis of mitochondrial ultrastructure and cristae morphology data.
+Pre-release repository for computational preprocessing, quality control, and statistical analysis of mitochondrial ultrastructure and cristae morphology data.
 
-> **Development status:** The Python preprocessing workflow and four R analysis workflows are implemented and exercised through GitHub Actions. The repository has not yet been formally released, archived in Zenodo, or assigned a DOI. Final public-release checks for data, metadata, citation, and reproducibility are still in progress.
+> **Project status:** The Python preprocessing workflow and all four R analysis workflows are implemented and have passed their GitHub Actions checks. The repository has not yet been formally released, archived in Zenodo, or assigned a DOI.
 
 ## Project scope
 
-The project contains two related measurement branches:
+The repository supports two related analytical branches:
 
-1. **Manual measurements**, recorded directly in a curated Excel workbook.
-2. **Automated measurements**, derived from Empanada segmentation outputs using Python preprocessing and transferred into a curated Excel workbook with a schema matching the manual workbook.
+1. **Manual measurements** recorded directly in a curated Excel workbook.
+2. **Automated measurements** derived from Empanada segmentation outputs using Python preprocessing and subsequently transferred into a curated Excel workbook with the same analytical structure as the manual workbook.
 
-The Python workflow applies only to the automated branch. Manual measurements do not pass through the Python preprocessing script.
-
-The curated manual and automated workbooks are then used by the R workflows for paired total-cristae analyses, subject-level heterogeneity summaries, and method-specific cristae morphometry analyses.
+The Python preprocessing step applies only to the automated branch. Both curated workbooks are then used by the downstream R workflows.
 
 ## Related image-analysis project
 
-The automated segmentation outputs processed by the Python workflow originate from the associated project:
+The automated segmentation outputs processed by the Python workflow originate from the associated repository:
 
 [Analysis of Mitochondrial Ultrastructure and Morphology](https://github.com/LMCF-IMG/Analysis_Mitochondrial_Ultrastructure_and_Morphology)
 
-The segmented image inputs are maintained in that upstream project and are not duplicated here.
+Raw microscopy images and upstream segmentation inputs are maintained outside this repository and are not duplicated here.
 
 ## Authors and contributions
 
-- **Nikol Volfová** — manual data evaluation; author of the R analysis scripts and downstream statistical analyses; repository integration, documentation, and maintenance.
+- **Nikol Volfová** — manual data evaluation, R-based statistical analyses, repository integration, documentation, testing, and maintenance.
 - **Martin Čapek** ([LMCF-IMG](https://github.com/LMCF-IMG)) — original author of the Python preprocessing script and its core computational logic.
 
 The repository version of the Python script was adapted for portable command-line use, documented, and covered by synthetic tests with Martin Čapek's knowledge and permission.
 
 This software contribution statement does not determine authorship of the associated research article.
 
-## Analysis workflow
+## Analysis overview
 
 ```mermaid
 flowchart TD
-    M1["Manual cristae evaluation"] --> M2["Curated manual Excel workbook"]
+    M1["Manual cristae evaluation"] --> M2["data/curated/cristae_manual.xlsx"]
 
-    E1["Empanada segmentation outputs"] --> P["Python preprocessing"]
-    P --> C["Python CSV and QC outputs"]
-    C --> A["Curated automated Excel workbook"]
+    E1["Empanada segmentation outputs"] --> P["scripts/python/count_cristae_per_mito.py"]
+    P --> C["Python CSV outputs"]
+    C --> A["data/curated/cristae_automated.xlsx"]
 
     M2 --> PI["scripts/R/prepare_prism_input.R"]
     A --> PI
@@ -49,50 +47,51 @@ flowchart TD
     PT --> T["scripts/R/analyze-total-cristae.R"]
     PT --> H["scripts/R/Heterogeneity_subjects.R"]
 
-    M2 --> L["scripts/R/Cristae_LMM.R"]
-    A --> L
+    M2 --> LMM["scripts/R/Cristae_LMM.R"]
+    A --> LMM
 
-    T --> O["Statistical tables and diagnostics"]
-    H --> O
-    L --> O
-    L --> F["Publication-style and diagnostic figures"]
+    T --> O1["Total-cristae tables and diagnostics"]
+    H --> O2["Subject-level heterogeneity outputs"]
+    LMM --> O3["LMM tables, plots, summaries, and diagnostics"]
 ```
 
-## Data provenance and curation
+## Data provenance and quality control
 
 ### Manual branch
 
-Cristae were evaluated manually and the measurements were entered directly into the curated manual workbook:
+Cristae were evaluated manually and recorded directly in:
 
 ```text
 data/curated/cristae_manual.xlsx
 ```
 
-This workbook is the tabular analytical input for the manual branch.
+This workbook is the curated tabular record used for the manual branch of the downstream analyses.
 
 ### Automated branch
 
-Empanada segmentation outputs are processed using:
+Empanada segmentation outputs were processed using:
 
 ```text
 scripts/python/count_cristae_per_mito.py
 ```
 
-The Python script generates per-image and summary CSV outputs together with quality-control artefacts. Relevant values are transferred into the curated automated workbook:
+The Python workflow generates per-image and summary CSV outputs together with quality-control information. Relevant values were then transferred into:
 
 ```text
 data/curated/cristae_automated.xlsx
 ```
 
-The automated workbook follows the schema required by the downstream R analyses.
+The automated workbook follows the analytical structure of the manual workbook and is the curated input used by the downstream R analyses.
 
 ### Quality control of mitochondrial segmentation objects
 
-The automated workflow is designed to quantify cristae, not to perform an independent biological evaluation of mitochondrial segmentation quality.
+The automated workflow was designed to quantify cristae, not to independently benchmark mitochondrial segmentation.
 
-Mitochondrial labels define the compartments to which detected cristae are assigned. Before statistical analysis, these labels are visually reviewed to identify clear segmentation errors. Labels that do not correspond to real mitochondrial profiles are excluded from the curated analytical dataset.
+Mitochondrial labels were used to define compartments to which detected cristae were assigned. Before statistical analysis, the labels were visually reviewed to identify clear segmentation errors.
 
-The exclusion criterion is not based on the number of detected cristae. Valid mitochondrial profiles with zero detected cristae remain included. The original Python outputs are retained as the primary computational output, while the curated automated workbook records the analytical dataset used downstream.
+Labels that did not correspond to real mitochondrial profiles in the source image were excluded because they did not represent valid compartments for cristae quantification. The exclusion criterion was not based on the number of detected cristae. Valid mitochondrial profiles with zero detected cristae remained included.
+
+The original Python CSV outputs were retained unchanged as the primary computational output. The automated Excel workbook represents the curated analytical dataset used for downstream cristae analyses.
 
 ## Repository structure
 
@@ -110,18 +109,17 @@ The exclusion criterion is not based on the number of detected cristae. Valid mi
 │   └── curated/
 │       ├── cristae_manual.xlsx
 │       └── cristae_automated.xlsx
-├── docs/
 ├── metadata/
 │   └── CITATION.cff.template
 ├── scripts/
-│   ├── README.md
 │   ├── R/
 │   │   ├── prepare_prism_input.R
 │   │   ├── analyze-total-cristae.R
 │   │   ├── Heterogeneity_subjects.R
 │   │   └── Cristae_LMM.R
-│   └── python/
-│       └── count_cristae_per_mito.py
+│   ├── python/
+│   │   └── count_cristae_per_mito.py
+│   └── README.md
 ├── tests/
 │   └── python/
 │       └── test_count_cristae_per_mito.py
@@ -133,15 +131,13 @@ The exclusion criterion is not based on the number of detected cristae. Valid mi
 └── requirements-python.txt
 ```
 
-Generated tables, logs, diagnostics, and figures are written under `results/derived/` or uploaded as GitHub Actions artifacts. They are analytical outputs rather than source files.
-
-See [`scripts/README.md`](scripts/README.md) for the script-level workflow and input/output contracts.
+Generated analytical outputs are written under `results/derived/` during local or GitHub Actions runs. They are uploaded as workflow artifacts and are not committed to the repository unless explicitly stated otherwise.
 
 ## Python environment
 
-Python 3.12 is used for the tested command-line workflow.
+Python 3.12 is used for the documented preprocessing workflow.
 
-### Linux or macOS
+### Linux and macOS
 
 ```bash
 python3.12 -m venv .venv
@@ -159,7 +155,7 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements-python.txt
 ```
 
-## Running Python preprocessing
+## Running the Python preprocessing workflow
 
 Provide directories containing matching mitochondrial and cristae segmentation masks and a protected output directory:
 
@@ -172,17 +168,23 @@ python scripts/python/count_cristae_per_mito.py \
   --fail-on-unpaired
 ```
 
+On Windows PowerShell, the same command can be written on one line:
+
+```powershell
+python scripts/python/count_cristae_per_mito.py --mito-dir <PATH_TO_MITOCHONDRIAL_MASKS> --cristae-dir <PATH_TO_CRISTAE_MASKS> --output-dir <PROTECTED_OUTPUT_DIRECTORY> --run-id <RUN_IDENTIFIER> --fail-on-unpaired
+```
+
 Display all supported options with:
 
 ```bash
 python scripts/python/count_cristae_per_mito.py --help
 ```
 
-Generated outputs should remain under a protected path until identifiers, filenames, paths, and embedded metadata have passed the release audit.
+Generated outputs should remain under a protected path until identifiers, filenames, local paths, and embedded metadata have passed the release audit.
 
-## Running the R analyses
+## R analysis workflows
 
-Run the R scripts from the repository root in the following order.
+The R workflows should be run from the repository root.
 
 ### 1. Prepare the combined Prism input
 
@@ -190,7 +192,15 @@ Run the R scripts from the repository root in the following order.
 Rscript scripts/R/prepare_prism_input.R
 ```
 
-This step reads the curated manual and automated workbooks and creates:
+This workflow:
+
+- reads the manual and automated curated workbooks;
+- standardizes their analytical structure;
+- combines the measurement methods;
+- creates the shared Prism input table;
+- records relevant validation information.
+
+Primary generated file:
 
 ```text
 results/derived/Prism_input.xlsx
@@ -202,133 +212,165 @@ results/derived/Prism_input.xlsx
 Rscript scripts/R/analyze-total-cristae.R
 ```
 
-This workflow reads the combined Prism input and produces documented statistical tables and model outputs for the total-cristae-count analysis.
+This workflow reads the combined Prism input and generates the total-cristae statistical analysis, model summaries, contrasts, diagnostics, and derived result tables.
 
-### 3. Summarize between-subject heterogeneity
+### 3. Analyse between-subject heterogeneity
 
 ```bash
 Rscript scripts/R/Heterogeneity_subjects.R
 ```
 
-This workflow reads the combined Prism input and produces subject-level summaries for manual and automated measurements.
+This workflow reads the combined Prism input and generates subject-level summaries used to evaluate heterogeneity across controls and patient groups for both measurement methods.
 
-### 4. Analyse cristae morphometry
+### 4. Run the cristae linear mixed-model analysis
 
 ```bash
 Rscript scripts/R/Cristae_LMM.R
 ```
 
-This workflow reads the curated manual and automated workbooks separately. For each eligible metric, it fits a linear mixed-effects model:
+This workflow reads the manual and automated workbooks directly and processes them separately.
+
+For each eligible metric, it fits:
 
 ```text
 y ~ group + (1 | ID_cluster)
 ```
 
-The workflow performs planned Controls-versus-patient contrasts, reports Benjamini-Hochberg-adjusted values, exports quality-control and model-diagnostic tables, and creates individual and summary figures. Its output root is:
+Planned contrasts compare Controls with patient groups P1-P10. The workflow exports:
+
+- structured Excel workbooks;
+- quality-control and conversion audits;
+- descriptive statistics;
+- model-estimated means;
+- planned contrasts and multiple-testing corrections;
+- significant-result and review-required tables;
+- individual publication-style plots;
+- summary heatmaps and contrast overviews;
+- residual-versus-fitted and Q-Q diagnostic plots.
+
+Primary output root:
 
 ```text
 results/derived/cristae_lmm_safe/
 ```
 
-The exact statistical definitions, eligibility criteria, safeguards, and output sheets are documented directly in the script.
+## GitHub Actions
 
-## R dependencies
+The repository contains five automated workflows:
 
-The GitHub Actions workflows install the packages required by each analysis on a clean runner. For local execution, install the packages referenced by the relevant script or workflow.
+| Workflow file | Purpose |
+| --- | --- |
+| `.github/workflows/python-tests.yml` | Runs the synthetic Python test suite. |
+| `.github/workflows/r-prepare-prism.yml` | Runs Prism input preparation and verifies the generated workbook. |
+| `.github/workflows/r-total-cristae.yml` | Runs the total-cristae analysis and verifies its outputs. |
+| `.github/workflows/r-heterogeneity.yml` | Runs the subject-heterogeneity analysis and verifies its outputs. |
+| `.github/workflows/r-cristae-lmm.yml` | Runs the manual and automated LMM analyses and verifies tables, plots, summaries, and diagnostics. |
 
-The cristae LMM workflow requires at least:
+At the time of this pre-release revision, all five workflows passed successfully.
 
-```r
-install.packages(c(
-  "openxlsx",
-  "lme4",
-  "lmerTest",
-  "emmeans",
-  "ggplot2",
-  "dplyr",
-  "tibble",
-  "stringr",
-  "tidyr"
-))
-```
+The R workflows are integration checks that execute the complete repository analysis scripts against the curated repository inputs and verify that the expected outputs are created. They complement, but are not equivalent to, isolated unit tests.
 
-A repository-wide `renv` lockfile has not yet been created.
+## Local testing and validation
 
-## Testing and continuous integration
+### Python synthetic tests
 
-Run the synthetic Python test suite locally with:
+Run locally with:
 
 ```bash
 python -m unittest discover -s tests/python -p "test_*.py" -v
 ```
 
-GitHub Actions provides separate workflows for:
+The same suite runs automatically through GitHub Actions.
 
-- Python synthetic tests;
-- Prism input preparation;
-- total cristae-count analysis;
-- subject-level heterogeneity analysis; and
-- cristae LMM analysis.
+### R workflow validation
 
-The workflows execute the scripts from a clean checkout, verify expected outputs, and upload generated results as temporary artifacts. All five workflows were successfully executed during the current pre-release validation.
+Run the four R scripts from the repository root in this order:
 
-The synthetic Python test demonstrates that the documented Python code executes on controlled fixtures and satisfies the tested invariants. It is not, by itself, an independent reproduction of the full research workflow or the associated publication.
+```bash
+Rscript scripts/R/prepare_prism_input.R
+Rscript scripts/R/analyze-total-cristae.R
+Rscript scripts/R/Heterogeneity_subjects.R
+Rscript scripts/R/Cristae_LMM.R
+```
+
+The first script creates the shared Prism input required by the total-cristae and heterogeneity workflows. The LMM workflow reads the two curated workbooks directly and does not depend on the Prism input.
+
+For automated validation, use the corresponding GitHub Actions workflows and review their uploaded artifacts.
 
 ## Reproducibility status
 
 | Component | Status |
-|---|---|
+| --- | --- |
 | Python command-line adaptation | Complete |
 | Python dependency record | Complete |
-| Python synthetic tests | Passed |
+| Python synthetic test suite | Passed |
 | Python GitHub Actions workflow | Passed |
-| Prism input preparation script | Implemented and CI-validated |
-| Total cristae-count analysis script | Implemented and CI-validated |
-| Subject-heterogeneity analysis script | Implemented and CI-validated |
-| Cristae LMM analysis script | Implemented and CI-validated |
-| Curated workbook schema and QC documentation | Implemented in scripts and output workbooks |
-| Independent comparison with all manuscript tables and figures | Pending |
-| Public-release data and metadata audit | Pending |
-| Repository-wide R package lock with `renv` | Pending |
-| GitHub Release and Zenodo archive | Pending |
+| Curated manual workbook included | Complete |
+| Curated automated workbook included | Complete |
+| Prism input preparation workflow | Implemented and passed |
+| Total-cristae analysis workflow | Implemented and passed |
+| Subject-heterogeneity workflow | Implemented and passed |
+| Cristae LMM workflow | Implemented and passed |
+| Verification of expected R output files in GitHub Actions | Passed |
+| Documentation of analysis order and input dependencies | Complete |
+| Final comparison with the submitted manuscript tables and figures | Pending final publication audit |
+| Formal versioned release | Pending |
+| Zenodo archive and DOI | Pending |
+| R dependency lock with `renv` | Not currently implemented |
 
-No claim of complete public reproducibility is made until the release data, metadata, environment, and publication-level comparisons have been finalized.
+The computational workflows contained in this repository are executable and covered by automated checks. Full end-to-end reproduction from raw microscopy images is outside the scope of this repository because raw images and upstream segmentation inputs are maintained separately.
 
 ## Data availability and confidentiality
 
-The current pre-release repository contains curated Excel inputs required by the R workflows. Their inclusion in a future public release remains subject to a final review for confidentiality, pseudonymization, authorship, permissions, and consistency with the associated article.
+The curated analytical workbooks are included in:
 
-The segmented image inputs remain in the upstream image-analysis project and are not duplicated here. Raw microscopy data and confidential unpublished figures are not intended to be committed to this repository.
+```text
+data/curated/
+```
 
-Before any additional research-derived files are released, they must be reviewed for:
+The following materials are not distributed through this repository:
+
+- raw microscopy images;
+- upstream segmentation masks;
+- confidential or unpublished figures;
+- manuscript files;
+- protected source metadata;
+- workflow artifacts containing results that have not been approved for public release.
+
+Generated outputs should be reviewed before publication for:
 
 - subject and sample identifiers;
 - filenames and local paths;
 - embedded metadata;
 - unpublished results;
-- confidential or personal information; and
+- confidential or personal information;
 - consistency with the associated research article.
-
-Do not place research data, credentials, private paths, or confidential incident details in public GitHub issues.
 
 ## Citation
 
-The associated research article is intended to be the preferred scientific citation. Its final bibliographic metadata and DOI are not yet available and are therefore not invented here.
+The associated research article is intended to be the preferred scientific citation once its bibliographic metadata are final.
 
-`metadata/CITATION.cff.template` will be completed and renamed to `CITATION.cff` after the author order, software version, release date, article citation, repository metadata, and DOI information have been verified.
+The repository currently contains:
 
-After a GitHub Release is archived by Zenodo, the verified DOI should be added consistently to:
+```text
+metadata/CITATION.cff.template
+```
 
-- this README;
-- `CITATION.cff`;
-- the GitHub Release description; and
-- the Zenodo record.
+A root-level `CITATION.cff` will be created only after the following metadata have been verified:
 
-## Security and responsible reporting
+- final software title;
+- author list and author order;
+- ORCID identifiers;
+- affiliations;
+- release version;
+- release date;
+- repository URL;
+- software license;
+- article citation;
+- article DOI;
+- Zenodo version DOI and concept DOI, when available.
 
-For security-sensitive matters, follow [`SECURITY.md`](SECURITY.md). Community behaviour is governed by [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
-
-Do not disclose credentials, access tokens, private SSH keys, confidential data, unpublished microscopy files, or personal information in an issue.
+No DOI is currently claimed.
 
 ## License
 
@@ -337,4 +379,8 @@ The source code and original documentation in this repository are available unde
 Copyright (c) 2026 Nikol Volfová  
 Copyright (c) 2026 Martin Čapek
 
-Research data, generated research tables, figures, and manuscript content are not covered by the MIT License unless a separate license explicitly states otherwise.
+Research data, generated research tables, figures, microscopy files, segmentation outputs, and manuscript content are not automatically covered by the MIT License unless a separate license or explicit statement says otherwise.
+
+## Security and responsible disclosure
+
+Please follow the instructions in [SECURITY.md](SECURITY.md) when reporting a security issue or accidental exposure of confidential information.
