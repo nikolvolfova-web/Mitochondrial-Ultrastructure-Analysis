@@ -1,12 +1,17 @@
-name: Test total cristae analysis
+name: Test Prism input generation
 
 on:
-  push:
-    branches:
-      - scripts/analyze-total-cristae
+  pull_request:
     paths:
       - "scripts/prepare_prism_input.R"
-      - "scripts/Stat_total_cristae.R"
+      - "data/curated/**"
+      - ".github/workflows/r-prepare-prism.yml"
+
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/prepare_prism_input.R"
       - "data/curated/**"
       - ".github/workflows/r-prepare-prism.yml"
 
@@ -16,9 +21,9 @@ permissions:
   contents: read
 
 jobs:
-  total-cristae-analysis:
+  prepare-prism-input:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
@@ -38,13 +43,8 @@ jobs:
                 "dplyr",
                 "tidyr",
                 "stringr",
-                "ggplot2",
-                "glmmTMB",
-                "DHARMa",
-                "emmeans",
                 "writexl",
-                "tibble",
-                "coin"
+                "tibble"
               )
             )
           '
@@ -57,29 +57,10 @@ jobs:
         run: |
           test -f results/derived/Prism_input.xlsx
 
-      - name: Run total cristae analysis
-        run: |
-          Rscript scripts/analyze-total-cristae
-
-      - name: Verify statistical outputs
-        run: |
-          test -f results/derived/stats_total_cristae/01_long_data.xlsx
-          test -f results/derived/stats_total_cristae/02_DHARMa_diagnostics_NB.pdf
-          test -f results/derived/stats_total_cristae/03_subject_level_cristae_per_mito.png
-          test -f results/derived/stats_total_cristae/04_image_level_cristae_per_mito.png
-          test -f results/derived/stats_total_cristae/05_statistical_results.xlsx
-          test -f results/derived/stats_total_cristae/06_model_output.txt
-
-      - name: Show generated files
-        run: |
-          find results/derived -maxdepth 3 -type f -print
-
-      - name: Upload total cristae results
+      - name: Upload generated Prism input
         uses: actions/upload-artifact@v4
         with:
-          name: total-cristae-analysis-results
-          path: |
-            results/derived/Prism_input.xlsx
-            results/derived/stats_total_cristae/**
+          name: generated-prism-input
+          path: results/derived/Prism_input.xlsx
           if-no-files-found: error
           retention-days: 14
