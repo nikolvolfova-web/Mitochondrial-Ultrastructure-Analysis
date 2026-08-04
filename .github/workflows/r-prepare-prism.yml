@@ -1,21 +1,24 @@
-name: Test R Prism input preparation
+name: Test total cristae analysis
 
 on:
   push:
     branches:
-      - scripts/reconstruct-r-workflow
+      - scripts/analyze-total-cristae
     paths:
       - "scripts/prepare_prism_input.R"
+      - "scripts/Stat_total_cristae.R"
       - "data/curated/**"
       - ".github/workflows/r-prepare-prism.yml"
+
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  prepare-prism-input:
+  total-cristae-analysis:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
 
     steps:
       - name: Check out repository
@@ -30,44 +33,53 @@ jobs:
         run: |
           Rscript -e '
             install.packages(
-              c("readxl", "dplyr", "stringr", "tibble", "writexl"),
-              repos = "https://cloud.r-project.org"
+              c(
+                "readxl",
+                "dplyr",
+                "tidyr",
+                "stringr",
+                "ggplot2",
+                "glmmTMB",
+                "DHARMa",
+                "emmeans",
+                "writexl",
+                "tibble",
+                "coin"
+              )
             )
           '
 
-      - name: Run Prism input preparation
+      - name: Generate Prism input
         run: |
           Rscript scripts/prepare_prism_input.R
 
-      - name: Verify generated workbook
+      - name: Verify Prism input
         run: |
           test -f results/derived/Prism_input.xlsx
 
-          Rscript -e '
-            path <- "results/derived/Prism_input.xlsx"
-            sheets <- readxl::excel_sheets(path)
+      - name: Run total cristae analysis
+        run: |
+          Rscript scripts/analyze-total-cristae
 
-            cat("Generated worksheets:\n")
-            print(sheets)
+      - name: Verify statistical outputs
+        run: |
+          test -f results/derived/stats_total_cristae/01_long_data.xlsx
+          test -f results/derived/stats_total_cristae/02_DHARMa_diagnostics_NB.pdf
+          test -f results/derived/stats_total_cristae/03_subject_level_cristae_per_mito.png
+          test -f results/derived/stats_total_cristae/04_image_level_cristae_per_mito.png
+          test -f results/derived/stats_total_cristae/05_statistical_results.xlsx
+          test -f results/derived/stats_total_cristae/06_model_output.txt
 
-            for (sheet in sheets) {
-              data <- readxl::read_excel(path, sheet = sheet)
+      - name: Show generated files
+        run: |
+          find results/derived -maxdepth 3 -type f -print
 
-              cat(
-                sprintf(
-                  "%s: %d rows x %d columns\n",
-                  sheet,
-                  nrow(data),
-                  ncol(data)
-                )
-              )
-            }
-          '
-
-      - name: Upload generated Prism workbook
+      - name: Upload total cristae results
         uses: actions/upload-artifact@v4
         with:
-          name: generated-prism-input
-          path: results/derived/Prism_input.xlsx
+          name: total-cristae-analysis-results
+          path: |
+            results/derived/Prism_input.xlsx
+            results/derived/stats_total_cristae/**
           if-no-files-found: error
           retention-days: 14
