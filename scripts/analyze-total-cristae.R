@@ -18,6 +18,42 @@
 #   - simple figures
 # =========================================================
 
+# STATISTICAL RATIONALE
+# ---------------------
+# The response variable `total` is a non-negative count of cristae observed in
+# an image. Images contain different numbers of mitochondria, so the model uses
+# `offset(log(n_mito))` to estimate cristae rates per mitochondrion rather than
+# comparing unadjusted image totals.
+#
+# The primary model uses the NB2 negative-binomial parameterization:
+#
+#   Var(Y) = mu + mu^2 / theta
+#
+# which allows variance to exceed the mean. The fixed-effect interaction tests
+# whether the Ctrl-versus-HD rate difference depends on whether measurements
+# were obtained manually or automatically.
+#
+# Random intercepts account for the hierarchical and paired structure:
+#   - subject_id: multiple images belong to the same biological subject;
+#   - image_uid: Manual and Automated measurements refer to the same image.
+#
+# The zero-inflated model is fitted as a sensitivity model and is not selected
+# automatically. Model choice should be based on AIC together with DHARMa
+# diagnostics and biological plausibility.
+#
+# The confirmatory analysis first pools counts within each subject and method:
+#
+#   cristae_per_mito = sum(total) / sum(n_mito)
+#
+# and then compares Ctrl and HD using an exact Wilcoxon test. This analysis gives
+# each subject one value and therefore emphasizes biological replication.
+#
+# SCRIPT STRUCTURE
+# ----------------
+# This script is a sequential analysis workflow and contains no user-defined
+# functions. Numbered sections document data preparation, modelling,
+# diagnostics, interpretation, visualization, and export.
+
 
 # ---------- 0) install missing packages ----------
 
@@ -57,7 +93,7 @@ library(writexl)
 library(coin)
 
 
-# ---------- 2) input and output paths ----------
+# ---------- 2) define and validate input/output paths ----------
 
 infile <- file.path(
   "results",
@@ -92,7 +128,7 @@ cat("Input workbook:\n", infile, "\n")
 cat("Output directory:\n", out_dir, "\n")
 
 
-# ---------- 3) read data ----------
+# ---------- 3) read paired image-level data ----------
 
 raw <- read_excel(
   infile,
@@ -100,7 +136,7 @@ raw <- read_excel(
 )
 
 
-# ---------- 4) basic checks ----------
+# ---------- 4) validate the required input schema ----------
 
 required_cols <- c(
   "group",
@@ -120,14 +156,17 @@ missing_cols <- setdiff(
 
 if (length(missing_cols) > 0) {
   stop(
-    "V datech chybi tyto sloupce: ",
+    "The input table is missing required columns: ",
     paste(missing_cols, collapse = ", ")
   )
 }
 
 
-# ---------- 5) derive disease_status + subject_id ----------
+# ---------- 5) derive disease status and biological subject identifiers ----------
 
+# Control subjects are recognized from image IDs beginning with `C1_` or `C2_`.
+# HD subject identity is taken from the experimental group name (`P1`-`P10`).
+# This mapping must match the naming convention used during data curation.
 dat <- raw %>%
   mutate(
     disease_status = case_when(
@@ -150,8 +189,12 @@ dat <- raw %>%
   )
 
 
-# ---------- 6) convert manual/auto wide -> long ----------
+# ---------- 6) reshape paired Manual/Automated measurements to long format ----------
 
+# The `.value` syntax creates shared variables such as `total`, `n_mito`, and
+# `mean_per_mito`, while `method` records whether each row is Manual or
+# Automated. Consequently, each paired image contributes up to two rows.
+# `image_uid` uniquely identifies the paired image within its subject.
 long <- dat %>%
   pivot_longer(
     cols = -c(
@@ -191,7 +234,7 @@ long <- dat %>%
   )
 
 
-# ---------- 7) clean rows ----------
+# ---------- 7) retain rows with valid counts and positive exposure ----------
 
 long <- long %>%
   filter(
@@ -201,23 +244,23 @@ long <- long %>%
   )
 
 
-# optional QC print
+# Print a concise quality-control overview of the modelling dataset.
 
 cat("\n===== QC =====\n")
 cat(
-  "Pocet radku v long datech:",
+  "Rows in the long-format dataset:",
   nrow(long),
   "\n"
 )
 
 cat(
-  "Pocet subjektu:",
+  "Unique subjects:",
   n_distinct(long$subject_id),
   "\n"
 )
 
 cat(
-  "Pocet obrazku:",
+  "Unique images:",
   n_distinct(long$image_uid),
   "\n\n"
 )
@@ -237,7 +280,7 @@ print(
 )
 
 
-# ---------- 8) export cleaned long table ----------
+# ---------- 8) export the cleaned long-format modelling table ----------
 
 write_xlsx(
   list(
@@ -250,13 +293,19 @@ write_xlsx(
 )
 
 
-# ---------- 9) primary model: negative binomial GLMM ----------
+# ---------- 9) fit the primary negative-binomial generalized mixed model ----------
 
 # Interpretation:
 # - disease_status = biological effect Ctrl vs HD
 # - method = systematic difference Manual vs Automated
 # - interaction = whether group difference depends on method
 
+# With a log link, the model can be written as:
+#
+#   log(E[total]) = fixed effects + log(n_mito) + random intercepts.
+#
+# Moving the offset to the left-hand side shows that fixed effects describe
+# multiplicative changes in the expected cristae count per mitochondrion.
 m_nb <- glmmTMB(
   total ~ disease_status * method +
     offset(log(n_mito)) +
@@ -271,8 +320,11 @@ cat("\n===== PRIMARY MODEL: NB GLMM =====\n")
 print(summary(m_nb))
 
 
-# ---------- 10) optional sensitivity model with zero inflation ----------
+# ---------- 10) fit a zero-inflated negative-binomial sensitivity model ----------
 
+# The sensitivity model adds one structural-zero probability shared across all
+# observations (`ziformula = ~1`). It should be preferred only when the data and
+# diagnostics support a separate excess-zero process.
 m_zinb <- glmmTMB(
   total ~ disease_status * method +
     offset(log(n_mito)) +
@@ -299,8 +351,10 @@ print(aic_tbl)
 # you may report ZI model as sensitivity analysis.
 
 
-# ---------- 11) model diagnostics ----------
+# ---------- 11) evaluate model fit using simulation-based DHARMa diagnostics ----------
 
+# DHARMa creates standardized simulated residuals. The exported diagnostic plot
+# and formal tests assess dispersion, excess zeros, and potential outliers.
 sim_nb <- simulateResiduals(
   m_nb,
   n = 1000
@@ -329,7 +383,7 @@ print(zi_test)
 print(outl_test)
 
 
-# ---------- 12) fixed effects table ----------
+# ---------- 12) extract fixed effects, incidence-rate ratios, and Wald intervals ----------
 
 coef_mat <- summary(m_nb)$coefficients$cond
 
@@ -346,7 +400,11 @@ coef_df <- as.data.frame(coef_mat) %>%
   )
 
 
-# Wald CI for fixed effects
+# Fixed-effect estimates are on the log-rate scale. Exponentiation produces
+# incidence-rate ratios (IRR), where IRR > 1 indicates a higher expected rate
+# and IRR < 1 indicates a lower expected rate for the corresponding contrast.
+
+# Wald confidence intervals for fixed effects
 
 ci_df <- as.data.frame(
   confint(
@@ -374,10 +432,11 @@ fixed_effects <- coef_df %>%
   )
 
 
-# ---------- 13) estimated marginal means / contrasts ----------
+# ---------- 13) estimate marginal rates and biologically relevant contrasts ----------
 
-# offset = 0 corresponds to n_mito = 1
-# ratios are interpretable as rate ratios per mitochondrion
+# Setting `offset = 0` corresponds to log(n_mito) = 0 and therefore n_mito = 1.
+# Response-scale estimated marginal means are consequently rates per
+# mitochondrion. Pairwise contrasts on the response scale are rate ratios.
 
 emm_group_by_method <- emmeans(
   m_nb,
@@ -416,8 +475,11 @@ emm_method_by_group_df <- as.data.frame(
 )
 
 
-# ---------- 14) confirmatory subject-level analysis ----------
+# ---------- 14) perform the confirmatory subject-level analysis ----------
 
+# Counts and mitochondrion numbers are summed within each biological subject
+# before division. This produces a pooled rate and avoids giving small images
+# the same weight as images containing many mitochondria.
 subject_summary <- long %>%
   group_by(
     disease_status,
@@ -446,7 +508,7 @@ cat("\n===== SUBJECT-LEVEL SUMMARY =====\n")
 print(subject_summary)
 
 
-# exact non-parametric test separately for each method
+# Compare Ctrl and HD subjects separately for each measurement method.
 
 subject_manual <- subject_summary %>%
   filter(method == "Manual")
@@ -490,7 +552,7 @@ cat("\n===== CONFIRMATORY SUBJECT-LEVEL TESTS =====\n")
 print(confirmatory_tests)
 
 
-# ---------- 15) descriptive summaries ----------
+# ---------- 15) calculate image-level and subject-level descriptive summaries ----------
 
 image_level_summary <- long %>%
   group_by(
@@ -560,7 +622,7 @@ subject_level_summary <- subject_summary %>%
   )
 
 
-# ---------- 16) secondary label totals at subject level ----------
+# ---------- 16) calculate secondary subject-level cristae-class profiles ----------
 
 label_cols <- grep(
   "^label_",
@@ -568,6 +630,9 @@ label_cols <- grep(
   value = TRUE
 )
 
+# Class counts are pooled within each subject and method and then normalized by
+# the total number of classified cristae. These profiles are descriptive and do
+# not form part of the primary NB GLMM.
 subject_class_profile <- long %>%
   group_by(
     disease_status,
@@ -601,9 +666,9 @@ subject_class_profile <- long %>%
   )
 
 
-# ---------- 17) figures ----------
+# ---------- 17) create subject-level and image-level descriptive figures ----------
 
-# subject-level figure
+# Subject-level plot: one pooled rate per biological subject and method.
 
 p_subject <- ggplot(
   subject_summary,
@@ -647,7 +712,7 @@ ggsave(
 )
 
 
-# image-level figure
+# Image-level plot: one rate per image and method.
 
 p_image <- ggplot(
   long,
@@ -692,7 +757,7 @@ ggsave(
 )
 
 
-# ---------- 18) export all main outputs ----------
+# ---------- 18) export all primary tables to a structured Excel workbook ----------
 
 write_xlsx(
   list(
@@ -728,7 +793,7 @@ write_xlsx(
 )
 
 
-# ---------- 19) save text output ----------
+# ---------- 19) save complete model and diagnostic output as plain text ----------
 
 sink(
   file.path(
@@ -775,9 +840,9 @@ print(confirmatory_tests)
 sink()
 
 
-cat("\nHOTOVO.\n")
+cat("\nCOMPLETED.\n")
 cat(
-  "Vystupy byly ulozeny do slozky:\n",
+  "Outputs were saved to:\n",
   out_dir,
   "\n"
 )
