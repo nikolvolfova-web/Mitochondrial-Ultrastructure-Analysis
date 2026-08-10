@@ -1,5 +1,5 @@
 # Direct runtime dependencies used in the synthetic validation environment.
-# A complete transitive lock remains pending validation on the approved data.
+# A complete transitive dependency lock is not provided.
 matplotlib==3.10.8
 numpy==2.5.1
 pandas==2.2.3
