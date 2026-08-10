@@ -1,5 +1,7 @@
 # Mitochondrial Ultrastructure Analysis
 
+[![DOI](https://zenodo.org/badge/1319598937.svg)](https://doi.org/10.5281/zenodo.21872763)
+
 Publication companion repository for computational preprocessing, quality
 control, and statistical analysis of mitochondrial ultrastructure and cristae
 morphology data.
@@ -7,8 +9,10 @@ morphology data.
 > **Project status:** Version 1.0.0 has completed repository validation and the
 > final reproducibility run. The Python preprocessing workflow and all six R
 > analysis workflows have passed their GitHub Actions checks. The repository is
-> publicly available. The Zenodo archive and DOI will be added after the formal
-> GitHub release is created.
+> publicly available and version 1.0.0 is archived in Zenodo.
+>
+> **Version DOI:** [10.5281/zenodo.21872764](https://doi.org/10.5281/zenodo.21872764)  
+> **Concept DOI:** [10.5281/zenodo.21872763](https://doi.org/10.5281/zenodo.21872763)
 
 ## Project scope
 
@@ -526,8 +530,10 @@ The validation and release-readiness procedures are documented in
 | Root-level citation metadata | Included |
 | Software license | MIT |
 | Data and QC license | CC BY 4.0 |
-| Formal versioned release | Not yet created |
-| Zenodo archive and DOI | Not yet created |
+| Formal versioned release | v1.0.0 |
+| Zenodo archive | Published |
+| Zenodo version DOI | 10.5281/zenodo.21872764 |
+| Zenodo concept DOI | 10.5281/zenodo.21872763 |
 
 The analyses contained in this repository represent the current analytical
 workflow. The curated data and analytical outputs are associated with the
@@ -569,20 +575,27 @@ status.
 Citation metadata are provided in the root-level
 [`CITATION.cff`](CITATION.cff) file.
 
+### Repository citation
+
+The archived release `v1.0.0` is available from Zenodo:
+
+**Version DOI:**  
+[10.5281/zenodo.21872764](https://doi.org/10.5281/zenodo.21872764)
+
+**Concept DOI:**  
+[10.5281/zenodo.21872763](https://doi.org/10.5281/zenodo.21872763)
+
+The version DOI identifies the archived `v1.0.0` release. The concept DOI
+identifies the project as a whole and should be used when referring generally
+to the evolving software repository.
+
 The associated research article is intended to be the preferred scientific
 citation once its final bibliographic metadata are available.
 
-The following information will be added after verification and formal release:
+Verified author ORCID identifiers are included in `CITATION.cff`.
 
-- software version;
-- release date;
-- verified publication metadata;
-- article DOI, when available;
-- Zenodo version DOI and concept DOI.
-
-Verified ORCID identifiers are included in `CITATION.cff`.
-
-No article, software, or Zenodo DOI is currently claimed.
+The article DOI and final publication metadata will be added only after they
+are formally available and verified.
 
 ## Contributing
 
