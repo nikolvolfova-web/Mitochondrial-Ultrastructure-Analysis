@@ -1,47 +1,34 @@
-# Validation Plan
+# Validation and Release-Readiness Record
 
-This document defines the validation and release-readiness procedure for the
+This document records the validation and release-readiness status of the
 Mitochondrial Ultrastructure Analysis repository.
 
-The Python preprocessing workflow and all six R analysis workflows are
-implemented and have passed their GitHub Actions checks. The analyses contained
-in this repository represent the current analytical workflow. The curated data
-and analytical outputs in this repository are those reported in the associated
-publication.
+Validation described here applies to the repository state prepared for public
+release on 2026-08-10.
 
-The remaining work focuses on traceability, internal consistency,
-reproducibility, confidentiality review, publication consistency, and formal
-release preparation.
+The repository is a downstream analysis and publication companion project.
+It does not reproduce the complete workflow from raw microscopy images. Raw
+images and the complete upstream segmentation dataset are maintained outside
+this repository.
 
 ## Validation objectives
 
-The validation has four objectives:
+The validation was designed to confirm that:
 
-1. verify that every repository analytical input has a documented origin;
-2. confirm that all repository workflows execute successfully and create the
-   expected outputs;
-3. verify that generated results are internally consistent and correspond to
-   those reported in the associated publication;
-4. ensure that the repository is safe, documented, citable, and suitable for a
-   later versioned GitHub Release and Zenodo archive.
-
-## Validation principles
-
-The project follows these principles:
-
-- source and reference files are preserved unchanged where applicable;
-- validation is performed on working copies or repository copies;
-- manual and automated measurements remain distinct data-generation branches;
-- manual transfer and curation steps are documented explicitly;
-- the repository scripts define the current analytical workflow;
-- exclusions, transformations, aggregation rules, and statistical models are
-  documented;
-- generated outputs are checked before publication or formal release;
-- confidential, identifying, or unpublished material is not released without
-  review;
-- discrepancies are investigated before repository files or publication text
-  are finalized;
-- unknown metadata are marked as pending rather than invented.
+1. repository analytical inputs have documented provenance;
+2. the Python preprocessing implementation and all R analysis workflows execute
+   successfully;
+3. processed Python outputs are internally consistent;
+4. the curated automated workbook is traceable to the Python outputs and
+   documented visual curation;
+5. generated analytical outputs are produced successfully from the repository
+   inputs;
+6. representative quality-control material accurately documents the curation
+   procedure;
+7. publicly distributed research-derived materials have been reviewed for
+   release;
+8. software, data licensing, citation metadata, and repository documentation
+   are suitable for public distribution.
 
 ## Repository components covered by validation
 
@@ -65,9 +52,6 @@ data/processed/python/cristae_counts_image_summary.csv
 ```text
 docs/qc_examples/C2_002_30000x/
 ```
-
-This directory contains the representative mitochondrial-label and cristae QC
-files, its own `README.md`, and `qc_manifest.csv`.
 
 ### Analysis scripts
 
@@ -94,9 +78,7 @@ scripts/R/cristae_Bland_Altman.R
 .github/workflows/r-cristae-bland-altman.yml
 ```
 
-## Completed automated validation
-
-### 1. Python preprocessing test
+## 1. Python preprocessing validation
 
 The synthetic Python test suite is located in:
 
@@ -104,248 +86,87 @@ The synthetic Python test suite is located in:
 tests/python/
 ```
 
-It is executed by:
+and is executed by:
 
 ```text
 .github/workflows/python-tests.yml
 ```
 
-The workflow checks that the documented Python command-line implementation
-executes on controlled synthetic fixtures and satisfies the tested invariants.
+The tests validate the documented command-line implementation using controlled
+synthetic segmentation inputs.
+
+The Python test suite passed during repository validation.
 
 Status:
 
 ```text
-Passed
+PASSED
 ```
 
 This test validates the repository implementation. It does not reproduce the
 complete research workflow from raw microscopy images.
 
-### 2. Prism input preparation
+## 2. Internal consistency of processed Python outputs
 
-The workflow:
+The three included Python-generated CSV files were checked for internal
+aggregation consistency.
 
-```text
-.github/workflows/r-prepare-prism.yml
-```
-
-runs:
+The relationship tested was:
 
 ```text
-scripts/R/prepare_prism_input.R
+all_cristae_instances.csv
+        ↓
+cristae_counts_per_mito.csv
+        ↓
+cristae_counts_image_summary.csv
 ```
 
-against:
+The per-crista records aggregated consistently to the per-mitochondrion table,
+and the per-mitochondrion table aggregated consistently to the image-level
+summary.
+
+The processed dataset contains 100 image-level records.
+
+No aggregation discrepancy was identified.
+
+The `class_13000` field is retained by the Python output schema but has no
+observations in the included research dataset.
+
+Status:
+
+```text
+PASSED
+```
+
+## 3. Curated workbook structural audit
+
+The following workbooks were reviewed:
 
 ```text
 data/curated/cristae_manual.xlsx
 data/curated/cristae_automated.xlsx
 ```
 
-The workflow verifies successful generation of:
+The review included workbook structure, worksheets, hidden content, formulas,
+comments, external workbook links, and metadata relevant to public release.
 
-```text
-results/derived/Prism_input.xlsx
-```
+Both workbooks contain the expected control and patient-group worksheets.
 
-Status:
+No hidden worksheets, hidden rows, hidden columns, formulas, comments, or
+external workbook links requiring remediation were identified during the
+release audit.
 
-```text
-Passed
-```
-
-### 3. Total cristae-count analysis
-
-The workflow:
-
-```text
-.github/workflows/r-total-cristae.yml
-```
-
-runs:
-
-```text
-scripts/R/analyze-total-cristae.R
-```
-
-against the generated Prism input and verifies the expected analytical outputs.
+The workbooks are successfully consumed by the downstream R workflows.
 
 Status:
 
 ```text
-Passed
+PASSED
 ```
 
-### 4. Between-subject heterogeneity analysis
+## 4. Automated workbook traceability
 
-The workflow:
-
-```text
-.github/workflows/r-heterogeneity.yml
-```
-
-runs:
-
-```text
-scripts/R/Heterogeneity_subjects.R
-```
-
-against the generated Prism input and verifies the expected analytical outputs.
-
-Status:
-
-```text
-Passed
-```
-
-### 5. Cristae linear mixed-model analysis
-
-The workflow:
-
-```text
-.github/workflows/r-cristae-lmm.yml
-```
-
-runs:
-
-```text
-scripts/R/Cristae_LMM.R
-```
-
-against both curated workbooks and verifies the expected manual and automated
-Excel workbooks, plots, summary plots, and diagnostic outputs.
-
-Status:
-
-```text
-Passed
-```
-
-### 6. Global cristae class-profile analysis
-
-The workflow:
-
-```text
-.github/workflows/r-global-class-profile.yml
-```
-
-runs:
-
-```text
-scripts/R/Global_class_profile_across_cristae_labels.R
-```
-
-against both curated workbooks.
-
-The workflow verifies generation of:
-
-```text
-results/derived/global_class_profile/global_class_profile_data.xlsx
-results/derived/global_class_profile/global_class_profile_dumbbell_colored.png
-results/derived/global_class_profile/global_class_profile_dumbbell_colored.pdf
-```
-
-Status:
-
-```text
-Passed
-```
-
-### 7. Manual-versus-automated agreement analysis
-
-The workflow:
-
-```text
-.github/workflows/r-cristae-bland-altman.yml
-```
-
-runs:
-
-```text
-scripts/R/cristae_Bland_Altman.R
-```
-
-against both curated workbooks.
-
-The workflow verifies the statistical workbook, text summaries, R session
-information, and Bland-Altman, scatter, and combined figures exported as PDF,
-PNG, and TIFF.
-
-Status:
-
-```text
-Passed
-```
-
-## Validation stages
-
-## Stage 1 — Preserve source and reference files
-
-The following files should be preserved as reference material when available:
-
-- original manual workbook;
-- original automated workbook;
-- original Python-generated outputs;
-- original combined Prism input;
-- original scripts and analysis notes;
-- original statistical output tables;
-- original figures.
-
-For each reference file, record where practical:
-
-- filename;
-- file type;
-- file size;
-- modification date;
-- analytical purpose;
-- source or creator;
-- SHA-256 checksum;
-- protected storage location.
-
-These files are preserved for traceability. The current repository analysis is
-not required to reproduce an earlier analytical implementation exactly.
-
-## Stage 2 — Manual workbook audit
-
-Audit:
-
-```text
-data/curated/cristae_manual.xlsx
-```
-
-Review:
-
-- worksheet names;
-- column names;
-- row-level observational unit;
-- subject and image identifiers;
-- duplicated records;
-- missing values;
-- unexpected text values;
-- inconsistent data types;
-- formulas versus stored values;
-- hidden worksheets, rows, or columns;
-- implausible numerical values;
-- compatibility with all downstream R workflows.
-
-The workbook has passed operational validation because all relevant R workflows
-execute successfully against it.
-
-Before formal public release, confirm that its schema is documented clearly
-enough for an external user and that workbook metadata have been reviewed.
-
-## Stage 3 — Automated workbook audit
-
-Audit:
-
-```text
-data/curated/cristae_automated.xlsx
-```
-
-Perform the same structural checks as for the manual workbook.
-
-In addition, compare the workbook with:
+The curated automated workbook was compared with:
 
 ```text
 data/processed/python/all_cristae_instances.csv
@@ -353,173 +174,211 @@ data/processed/python/cristae_counts_per_mito.csv
 data/processed/python/cristae_counts_image_summary.csv
 ```
 
-The comparison should verify:
+All 100 image blocks in the curated automated workbook could be matched to the
+processed Python outputs.
 
-- sample and image identifiers;
-- transferred columns;
-- row counts;
-- duplicated or omitted records;
-- values copied into the wrong row or column;
-- numerical equality where direct equality is expected;
-- decimal and data-type conversions;
-- missing-value handling;
-- documented manual exclusions;
-- correspondence between the curated workbook and visual QC decisions.
+For all 100 images, the image-level totals corresponding to `Label 2` through
+`Label 12` were consistent with the Python-generated values.
 
-The expected relationship is:
+Differences in the number of retained mitochondrial profiles between the raw
+Python outputs and the curated automated workbook are expected where
+mitochondrial segmentation artefacts were removed during documented visual
+quality control.
+
+The original Python CSV files remain unchanged. Curation is represented in the
+curated automated workbook rather than by modification of the primary Python
+outputs.
+
+Status:
 
 ```text
-Python-generated outputs
-    → manual transfer of relevant values
-    → visual review of mitochondrial labels
-    → exclusion of confirmed segmentation errors
-    → curated automated workbook
+PASSED
 ```
 
-A value that cannot be traced to a Python output or a documented curation
-decision should be flagged.
+## 5. Mitochondrial numbering correction
 
-## Stage 4 — Representative QC verification
+During the release audit, eight rows in:
 
-Review:
+```text
+data/curated/cristae_automated.xlsx
+```
+
+contained `1` instead of `10` in the `Number of mito` field within otherwise
+ascending mitochondrial numbering sequences.
+
+These identifiers were corrected before public release.
+
+The correction does not change the number of mitochondrial observations or the
+cristae measurements associated with those rows.
+
+The downstream analysis code was reviewed for analytical dependence on this
+field.
+
+In `prepare_prism_input.R`, mitochondrial counts are determined from the number
+of valid mitochondrial rows rather than from the numeric value of
+`Number of mito`.
+
+`Cristae_LMM.R` explicitly excludes `Number of mito` from the analysed
+variables.
+
+The agreement workflow likewise does not use the mitochondrial identifier as a
+numeric denominator or analytical measurement.
+
+Therefore, the numbering correction is a curated-data identifier correction
+and does not alter the analytical results.
+
+Status:
+
+```text
+CORRECTED — NO ANALYTICAL IMPACT
+```
+
+## 6. Representative mitochondrial-segmentation QC
+
+The representative QC example is located in:
 
 ```text
 docs/qc_examples/C2_002_30000x/
 ```
 
-Verify that:
+The example documents visual review of mitochondrial segmentation before
+preparation of the curated automated dataset.
 
-- every listed QC file exists;
-- `qc_manifest.csv` matches the directory contents;
-- the local `README.md` explains the example correctly;
-- labels 1 and 4 are documented as valid mitochondrial profiles;
-- labels 2 and 3 are documented as segmentation errors;
-- exclusion is not described as being caused by a zero crista count;
-- the example does not expose confidential metadata;
-- no protected patient-level QC material is included.
+For image `C2_002_30000x`:
 
-## Stage 5 — Prism input verification
-
-Run:
-
-```bash
-Rscript scripts/R/prepare_prism_input.R
+```text
+mitochondrial label 1 → retained
+mitochondrial label 2 → excluded as segmentation artefact
+mitochondrial label 3 → excluded as segmentation artefact
+mitochondrial label 4 → retained
 ```
 
-Verify:
+The exclusion criterion was based on whether the segmentation corresponded to
+a valid visible mitochondrial profile.
 
-- both curated workbooks are read successfully;
-- the expected worksheets and columns are found;
-- manual and automated records are joined as intended;
-- missing images are reported;
-- output dimensions are plausible;
-- the generated workbook contains the expected sheets;
-- generated values agree with the repository inputs.
+It was not based on the number of detected cristae.
 
-Primary output:
+Valid mitochondrial profiles with zero detected cristae remained eligible for
+inclusion.
+
+The QC directory contains derived segmentation and visualization files. The
+original source image is intentionally not duplicated in this companion
+repository.
+
+The local `README.md` and `qc_manifest.csv` were updated during the final audit
+to match the files actually distributed in the directory.
+
+Status:
+
+```text
+PASSED
+```
+
+## 7. Prism input preparation
+
+Workflow:
+
+```text
+.github/workflows/r-prepare-prism.yml
+```
+
+Script:
+
+```text
+scripts/R/prepare_prism_input.R
+```
+
+Inputs:
+
+```text
+data/curated/cristae_manual.xlsx
+data/curated/cristae_automated.xlsx
+```
+
+Primary generated output:
 
 ```text
 results/derived/Prism_input.xlsx
 ```
 
-Automated execution and expected-output verification have passed.
+The workflow successfully generated and verified the expected output during the
+final reproducibility run.
 
-## Stage 6 — Total cristae-count analysis verification
-
-Run:
-
-```bash
-Rscript scripts/R/analyze-total-cristae.R
-```
-
-Verify:
-
-- expected input columns;
-- image and subject structure;
-- measurement-method levels;
-- count ranges;
-- missing-value handling;
-- offset definition;
-- random-effects structure;
-- planned contrasts;
-- model diagnostics;
-- generated tables and figures;
-- numerical consistency across exported tables, figures, and summaries.
-
-Automated workflow status:
+Status:
 
 ```text
-Passed
+PASSED
 ```
 
-Publication consistency status:
+## 8. Total cristae-count analysis
+
+Workflow:
 
 ```text
-Confirmed
+.github/workflows/r-total-cristae.yml
 ```
 
-## Stage 7 — Between-subject heterogeneity verification
-
-Run:
-
-```bash
-Rscript scripts/R/Heterogeneity_subjects.R
-```
-
-Verify:
-
-- subject identifiers;
-- manual and automated method separation;
-- subject-level aggregation rules;
-- control reference-range calculations;
-- image-level variability summaries;
-- crista-class profile calculations;
-- generated tables, plots, and heatmaps;
-- numerical consistency across exported outputs.
-
-Automated workflow status:
+Script:
 
 ```text
-Passed
+scripts/R/analyze-total-cristae.R
 ```
 
-Publication consistency status:
+The workflow executed successfully against the generated Prism input and
+verified the expected analytical outputs.
+
+Status:
 
 ```text
-Confirmed
+PASSED
 ```
 
-## Stage 8 — Cristae LMM verification
+## 9. Between-subject heterogeneity analysis
 
-Run:
+Workflow:
 
-```bash
-Rscript scripts/R/Cristae_LMM.R
+```text
+.github/workflows/r-heterogeneity.yml
 ```
 
-Verify separately for the manual and automated workbooks:
+Script:
 
-- imported worksheets and columns;
-- globally unique `ID_cluster` construction;
-- minimum-data eligibility rules;
-- retained metrics;
-- excluded variables;
-- model formula;
-- planned Controls-versus-P1-P10 contrasts;
-- multiple-testing correction;
-- singularity and convergence flags;
-- model diagnostics;
-- Excel result tables;
-- individual and summary plots;
-- numerical consistency across all exported outputs.
+```text
+scripts/R/Heterogeneity_subjects.R
+```
 
-The implemented model formula is:
+The workflow executed successfully and verified its expected analytical
+outputs.
+
+Status:
+
+```text
+PASSED
+```
+
+## 10. Cristae linear mixed-model analysis
+
+Workflow:
+
+```text
+.github/workflows/r-cristae-lmm.yml
+```
+
+Script:
+
+```text
+scripts/R/Cristae_LMM.R
+```
+
+The workflow analyses the manual and automated workbooks separately.
+
+The implemented model is:
 
 ```text
 y ~ group + (1 | ID_cluster)
 ```
 
-The excluded columns are:
+The following workbook fields are excluded from the LMM outcome variables:
 
 ```text
 Number of mito
@@ -528,39 +387,33 @@ length of contact
 average length of contact
 ```
 
-Automated workflow status:
+The workflow dependency list explicitly includes the required `emmeans`
+package.
+
+The workflow successfully generated and verified the expected Excel results,
+plots, summaries, and diagnostic outputs during the final reproducibility run.
+
+Status:
 
 ```text
-Passed
+PASSED
 ```
 
-Publication consistency status:
+## 11. Global cristae class-profile analysis
+
+Workflow:
 
 ```text
-Confirmed
+.github/workflows/r-global-class-profile.yml
 ```
 
-## Stage 9 — Global cristae class-profile verification
+Script:
 
-Run:
-
-```bash
-Rscript scripts/R/Global_class_profile_across_cristae_labels.R
+```text
+scripts/R/Global_class_profile_across_cristae_labels.R
 ```
 
-Verify:
-
-- both curated workbooks are read directly;
-- all required columns from `Label 2` through `Label 12` are identified;
-- repeated non-numeric header rows are not included in totals;
-- valid values are summed separately for manual and automated methods;
-- relative abundances sum to approximately 100% within each method;
-- label order is preserved from `Label 2` through `Label 12`;
-- the exported Excel table matches the values plotted;
-- PNG and PDF figures are readable and non-empty;
-- output paths match the documentation.
-
-Primary outputs:
+Primary outputs include:
 
 ```text
 results/derived/global_class_profile/global_class_profile_data.xlsx
@@ -568,42 +421,28 @@ results/derived/global_class_profile/global_class_profile_dumbbell_colored.png
 results/derived/global_class_profile/global_class_profile_dumbbell_colored.pdf
 ```
 
-Automated workflow status:
+The workflow successfully generated and verified its expected table and figure
+outputs during the final reproducibility run.
+
+Status:
 
 ```text
-Passed
+PASSED
 ```
 
-Publication consistency status:
+## 12. Manual-versus-automated agreement analysis
+
+Workflow:
 
 ```text
-Confirmed
+.github/workflows/r-cristae-bland-altman.yml
 ```
 
-## Stage 10 — Manual-versus-automated agreement verification
+Script:
 
-Run:
-
-```bash
-Rscript scripts/R/cristae_Bland_Altman.R
+```text
+scripts/R/cristae_Bland_Altman.R
 ```
-
-Verify:
-
-- both curated workbooks are read directly;
-- Label 2-Label 12 counts are aggregated correctly at image level;
-- pairing uses worksheet name and image identifier rather than row order;
-- duplicate pairing keys are absent;
-- manual and automated image sets pair completely;
-- the difference is defined as `automated - manual`;
-- bias and 95% limits of agreement are calculated as documented;
-- confidence intervals are exported correctly;
-- Pearson correlation is reported separately from agreement;
-- the ordinary least-squares regression matches the exported plot;
-- proportional-bias and Shapiro-Wilk diagnostics are exported;
-- the statistical workbook and text summary agree;
-- PDF, PNG, and TIFF figures are readable and non-empty;
-- the combined panel contains both expected plots.
 
 Primary output root:
 
@@ -611,78 +450,184 @@ Primary output root:
 results/derived/cristae_bland_altman/
 ```
 
-Automated workflow status:
+The workflow verifies the statistical workbook, analysis summary, R session
+information, Bland-Altman figures, scatter figures, and combined figure panels.
+
+The difference is defined as:
 
 ```text
-Passed
+automated - manual
 ```
 
-Publication consistency status:
+Pearson correlation is reported separately from agreement.
+
+The workflow successfully generated and verified its expected outputs during
+the final reproducibility run.
+
+Status:
 
 ```text
-Confirmed
+PASSED
 ```
 
-## Stage 11 — Software environment capture
+## 13. Final reproducibility run
+
+Immediately before public-release preparation, all seven GitHub Actions
+workflows were executed against the current repository state.
+
+The final run covered:
+
+```text
+python-tests.yml
+r-prepare-prism.yml
+r-total-cristae.yml
+r-heterogeneity.yml
+r-cristae-lmm.yml
+r-global-class-profile.yml
+r-cristae-bland-altman.yml
+```
+
+All workflows completed successfully.
+
+Generated workflow artifacts from the final R analyses were downloaded and
+retained as release-validation records.
+
+Status:
+
+```text
+7 / 7 WORKFLOWS PASSED
+```
+
+## 14. Software environment and dependencies
 
 ### Python
 
-The Python dependency record is stored in:
+The Python dependency record is provided in:
 
 ```text
 requirements-python.txt
 ```
 
-Before formal release, verify:
+The documented workflow uses Python 3.12.
 
-- supported Python version;
-- clean installation in a new environment;
-- successful local test execution;
-- agreement between local and GitHub Actions execution.
+Synthetic tests pass in the GitHub Actions environment.
 
 ### R
 
-The workflows install the packages required by the individual scripts.
+Required R packages are installed explicitly by the individual GitHub Actions
+workflows.
 
-The LMM workflow records session information in its generated result workbook.
-The Bland-Altman workflow exports:
+The LMM workflow includes all packages required by the current script,
+including:
 
 ```text
-results/derived/cristae_bland_altman/R_session_info.txt
+emmeans
 ```
 
-Before formal release, decide whether to:
+The repository does not currently provide a verified `renv.lock`.
 
-1. add a verified `renv.lock` file; or
-2. document the exact R and package versions used for the release in another
-   reproducible form.
+This limitation is documented rather than concealed.
 
-Do not claim an R dependency lock while no verified lock file exists.
+Session/environment information is retained by analytical outputs where
+implemented, including the Bland-Altman `R_session_info.txt` output.
 
-## Stage 12 — Publication reporting consistency
+A formal claim of a fully locked R package environment is therefore not made.
 
-The curated data and analytical outputs in this repository are those reported
-in the associated publication.
+## 15. Public-release and confidentiality review
 
-Verify that:
+The research-derived files currently distributed in this repository have been
+reviewed and approved for public release.
 
-- sample sizes match the validated repository outputs;
-- descriptive statistics correspond to the correct tables;
-- model coefficients and effect measures correspond to the exported results;
-- contrasts and confidence intervals match the exported results;
-- raw and adjusted p-values are distinguished;
-- Bland-Altman bias and limits of agreement match the exported results;
-- Pearson correlation is not presented as evidence of agreement;
-- global class-profile values match the exported summary table;
-- figure labels match the generated plots;
-- the Methods section describes the implemented workflows;
-- the Results section corresponds to the repository analyses;
-- statements in the abstract and conclusions are supported by the results;
-- repository version and release information are cited consistently.
+The approval applies to the materials actually included in the repository.
 
-## Stage 13 — Documentation consistency audit
+The repository does not distribute the complete raw microscopy dataset,
+complete upstream segmentation dataset, complete patient-level QC material, or
+a lookup table connecting pseudonymous identifiers to real persons.
 
-Verify consistency across:
+The representative QC example is derived from a control image.
+
+The release audit also reviewed the repository for accidental disclosure of
+local paths, credentials, obvious secrets, or protected material.
+
+No Blocking confidentiality issue was identified in the release candidate.
+
+Status:
+
+```text
+APPROVED FOR INCLUDED MATERIALS
+```
+
+## 16. Licensing
+
+Software, scripts, workflows, tests, and original software documentation are
+distributed under:
+
+```text
+MIT
+```
+
+as specified in:
+
+```text
+LICENSE
+```
+
+Research-derived data and QC materials distributed under:
+
+```text
+data/curated/
+data/processed/python/
+docs/qc_examples/
+```
+
+are distributed under:
+
+```text
+Creative Commons Attribution 4.0 International
+CC BY 4.0
+```
+
+as specified in:
+
+```text
+LICENSE-DATA.md
+```
+
+Materials maintained outside this repository are not relicensed by
+`LICENSE-DATA.md`.
+
+Status:
+
+```text
+DOCUMENTED
+```
+
+## 17. Citation metadata
+
+Repository citation metadata are provided in:
+
+```text
+CITATION.cff
+```
+
+The file contains the verified author names and ORCID identifiers currently
+available for the repository.
+
+The repository DOI, release version, release date, and final bibliographic
+metadata of the associated article are not yet included because they have not
+yet been formally established for this release.
+
+They must be added only after verification.
+
+Status:
+
+```text
+CURRENT PRE-RELEASE METADATA COMPLETE
+```
+
+## 18. Documentation consistency
+
+The final release audit includes consistency checks across:
 
 ```text
 README.md
@@ -690,149 +635,70 @@ scripts/README.md
 data/README.md
 docs/DATA_PROVENANCE.md
 docs/VALIDATION_PLAN.md
+docs/qc_examples/C2_002_30000x/README.md
+docs/qc_examples/C2_002_30000x/qc_manifest.csv
 CITATION.cff
 LICENSE
+LICENSE-DATA.md
 CONTRIBUTING.md
+CODE_OF_CONDUCT.md
 SECURITY.md
-GitHub Release notes
-Zenodo metadata
 ```
 
-Check:
+The public-release documentation distinguishes:
 
-- repository title;
-- repository URL;
-- author names and order;
-- ORCID identifiers;
-- affiliations;
-- software version;
-- release date;
-- license;
-- workflow names;
-- script names;
-- file paths;
-- input and output descriptions;
-- data-availability statements;
-- article citation;
-- DOI values;
-- keywords;
-- funding information;
-- related identifiers.
+```text
+upstream image-analysis project
+        ↓
+processed segmentation outputs
+        ↓
+this downstream publication companion repository
+        ↓
+curated analyses and publication outputs
+```
 
-Unknown values must remain omitted or explicitly marked as pending.
+The repository documentation also distinguishes the MIT software license from
+the CC BY 4.0 data and QC license.
+
+GitHub Release and Zenodo metadata do not yet exist and therefore remain outside
+the completed pre-release documentation audit.
 
 ## Discrepancy classification
 
-### No issue
+Validation findings are classified as:
 
-Examples:
+- **Blocking** — prevents reliable validation or public release.
+- **High priority** — affects analytical correctness or reported results.
+- **Medium priority** — affects reproducibility or essential documentation.
+- **Low priority** — affects clarity or maintainability.
+- **Optional** — improvement without an effect on analytical correctness.
 
-- row ordering differs but values are identical;
-- formatting differs;
-- displayed rounding differs without changing the underlying value.
-
-### Technical reproducibility issue
-
-Examples:
-
-- local filesystem path;
-- missing dependency-version record;
-- locale-dependent parsing;
-- undocumented worksheet name;
-- workflow path mismatch.
-
-### Data-transfer discrepancy
-
-Examples:
-
-- value copied incorrectly from CSV to workbook;
-- omitted image;
-- duplicated observation;
-- identifier assigned to the wrong record.
-
-### Data-processing discrepancy
-
-Examples:
-
-- undocumented filtering;
-- inconsistent missing-value handling;
-- different aggregation rule;
-- accidental exclusion or inclusion.
-
-### Statistical discrepancy
-
-Examples:
-
-- inconsistent model formula between code and documentation;
-- incorrect random-effects description;
-- incorrect Bland-Altman difference definition;
-- incorrect limit-of-agreement calculation;
-- incorrect offset;
-- incorrect contrast;
-- inconsistent analysis population;
-- incorrect multiple-testing description.
-
-### Publication-reporting discrepancy
-
-A publication-reporting discrepancy occurs when the publication does not match
-the validated repository analysis, for example:
-
-- an inconsistent numerical result;
-- an incorrect table or figure value;
-- an incorrect significance statement;
-- an inconsistent method description;
-- an interpretation unsupported by the analysis;
-- correlation incorrectly described as agreement.
-
-## Priority levels
-
-Findings are classified as:
-
-- **Blocking** — prevents reliable validation or publication;
-- **High priority** — affects analytical correctness or reported results;
-- **Medium priority** — affects reproducibility or essential documentation;
-- **Low priority** — affects clarity or maintainability;
-- **Optional** — improvement without impact on correctness.
-
-## Required record for each finding
-
-Every identified issue should record:
-
-- priority;
-- affected file;
-- affected worksheet, column, row, or script section;
-- observed behavior;
-- expected behavior;
-- likely cause;
-- analytical impact;
-- proposed correction;
-- file to change;
-- verification procedure;
-- resolution status.
+No unresolved Blocking or High-priority analytical discrepancy was identified
+during the final repository validation.
 
 ## Release criteria
 
-The repository is ready for a formal software release only when:
+The repository is considered ready to proceed to public-release preparation
+when:
 
-- source and reference files have been inventoried where applicable;
-- curated workbook schemas are documented;
-- the automated workbook has been checked against processed Python outputs and
-  curation records;
-- the representative QC example has passed confidentiality review;
-- all seven GitHub Actions workflows pass on the release candidate;
-- generated R outputs have been reviewed;
-- publication text, values, and figures are consistent with the validated
-  repository results;
-- discrepancies are resolved or transparently documented;
-- Python and R dependency information is sufficient for the release;
-- README and script documentation match the final repository tree;
-- `CITATION.cff` contains verified release metadata;
-- no DOI, ORCID, affiliation, funding, or author information is invented;
-- sensitive data and embedded metadata have been reviewed;
-- the release tag and GitHub Release use the same version;
-- Zenodo metadata are consistent with GitHub and `CITATION.cff`.
+- the curated analytical inputs are documented;
+- Python processed outputs have passed internal-consistency checks;
+- the automated workbook has been traced to the Python outputs and documented
+  curation procedure;
+- the representative QC example accurately documents the segmentation QC;
+- all seven GitHub Actions workflows pass against the release candidate;
+- expected analytical outputs are generated successfully;
+- public-release approval applies to the research-derived files included in the
+  repository;
+- software and data licensing are documented;
+- citation metadata contain only verified information;
+- no unresolved Blocking or High-priority validation finding remains.
 
-## Current status
+These criteria have been met for the current release candidate.
+
+Formal versioning and archival metadata are handled after public release.
+
+## Current validation status
 
 | Validation item | Status |
 | --- | --- |
@@ -840,29 +706,69 @@ The repository is ready for a formal software release only when:
 | Python dependency record | Included |
 | Synthetic Python tests | Passed |
 | Python GitHub Actions workflow | Passed |
-| Processed Python CSV files | Included |
-| Curated manual workbook | Included |
-| Curated automated workbook | Included |
-| Representative QC example | Included |
-| Prism input preparation script | Implemented |
-| Prism input GitHub Actions workflow | Passed |
-| Total cristae-count script | Implemented |
-| Total cristae-count GitHub Actions workflow | Passed |
-| Subject-heterogeneity script | Implemented |
-| Subject-heterogeneity GitHub Actions workflow | Passed |
-| Manual and automated LMM script | Implemented |
-| LMM GitHub Actions workflow | Passed |
-| Global cristae class-profile script | Implemented |
-| Global class-profile GitHub Actions workflow | Passed |
-| Manual-versus-automated agreement script | Implemented |
-| Bland-Altman GitHub Actions workflow | Passed |
-| Expected R output verification | Passed |
-| Publication consistency with repository analyses | Confirmed |
-| Python CSV-to-workbook traceability audit | Pending final release audit |
-| Source and reference-file inventory | Pending verification |
-| Final review of generated analytical outputs | Completed |
-| R dependency lock with `renv` | Not currently implemented |
+| Processed Python CSV internal consistency | Passed |
+| Curated manual workbook | Reviewed and included |
+| Curated automated workbook | Reviewed and included |
+| Mitochondrial numbering correction | Completed; no analytical impact |
+| Python CSV-to-workbook traceability | Passed |
+| Representative QC example | Passed |
+| QC manifest | Corrected and verified |
+| Prism input preparation workflow | Passed |
+| Total cristae-count workflow | Passed |
+| Subject-heterogeneity workflow | Passed |
+| Cristae LMM workflow | Passed |
+| Global class-profile workflow | Passed |
+| Bland-Altman workflow | Passed |
+| Final reproducibility run | 7/7 workflows passed |
+| Final R workflow artifacts | Generated and retained |
+| Public release approval for included data | Approved |
+| Software license | MIT |
+| Data and QC license | CC BY 4.0 |
 | Root-level `CITATION.cff` | Included |
-| Final release metadata in `CITATION.cff` | Pending formal release |
-| Formal GitHub Release | Pending |
-| Zenodo archive and DOI | Pending |
+| Verified author ORCID metadata | Included |
+| Verified `renv.lock` | Not implemented |
+| Formal version number | Pending formal release |
+| Release date | Pending formal release |
+| GitHub Release | Pending |
+| Zenodo archive | Pending |
+| Zenodo DOI | Pending |
+| Associated article DOI | Pending verified bibliographic metadata |
+
+## Final pre-publication step
+
+Before changing repository visibility from private to public, perform one final
+repository-level audit for:
+
+```text
+Pending
+pre-release
+TODO
+FIXME
+<<<<<<<
+=======
+>>>>>>>
+```
+
+and verify that:
+
+```text
+all internal Markdown links resolve
+all seven Actions workflows are green
+the repository root displays the expected README
+LICENSE and LICENSE-DATA.md are both present
+CITATION.cff parses correctly
+no confidential file has been added since the validation run
+```
+
+If that final repository-level check is clean, the repository may proceed to
+public visibility.
+
+After public release, the next steps are:
+
+```text
+create the formal version tag
+create the corresponding GitHub Release
+archive the release through Zenodo
+obtain and verify the Zenodo DOI
+update README.md and CITATION.cff with verified release metadata
+```
