@@ -20,4 +20,7 @@ authors:
 
 repository-code: "https://github.com/nikolvolfova-web/Mitochondrial-Ultrastructure-Analysis"
 
+version: "1.0.0"
+date-released: "2026-08-10"
+
 license: "MIT"
