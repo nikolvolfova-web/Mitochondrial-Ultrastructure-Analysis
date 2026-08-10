@@ -1,14 +1,19 @@
 # Mitochondrial Ultrastructure Analysis
 
-Pre-release repository for computational preprocessing, quality control, and
-statistical analysis of mitochondrial ultrastructure and cristae morphology
-data.
+Publication companion repository for computational preprocessing, quality
+control, and statistical analysis of mitochondrial ultrastructure and cristae
+morphology data.
 
-> **Project status:** The Python preprocessing workflow and all six R workflows
-> are implemented and have passed their GitHub Actions checks. The repository
-> has not yet been formally released, archived in Zenodo, or assigned a DOI.
+> **Project status:** The Python preprocessing workflow and all six R analysis
+> workflows are implemented and have passed their GitHub Actions checks.
+> The repository is prepared for public release. A formal versioned release,
+> Zenodo archive, and DOI have not yet been created.
 
 ## Project scope
+
+This repository contains the downstream analytical workflow used to process,
+curate, validate, and statistically analyse mitochondrial ultrastructure and
+cristae morphology data associated with the accompanying research publication.
 
 The repository supports two related analytical branches:
 
@@ -20,15 +25,32 @@ The repository supports two related analytical branches:
 The Python preprocessing step applies only to the automated branch. Both
 curated workbooks are used by the downstream R workflows.
 
-## Related image-analysis project
+This repository is intended as a publication companion and does not duplicate
+the complete upstream image-analysis project or the raw microscopy dataset.
+
+## Related upstream image-analysis project
 
 The automated segmentation outputs processed by the Python workflow originate
-from the associated repository:
+from the associated upstream project:
 
 [Analysis of Mitochondrial Ultrastructure and Morphology](https://github.com/LMCF-IMG/Analysis_Mitochondrial_Ultrastructure_and_Morphology)
 
 Raw microscopy images and the complete upstream segmentation dataset are
 maintained outside this repository and are not duplicated here.
+
+The relationship between the projects is therefore:
+
+```text
+raw microscopy images
+        ↓
+upstream image-analysis and segmentation project
+        ↓
+segmentation outputs
+        ↓
+this publication companion repository
+        ↓
+curation, statistical analysis, validation, and publication outputs
+```
 
 ## Authors and contributions
 
@@ -142,7 +164,10 @@ docs/qc_examples/C2_002_30000x/
 
 For this example, mitochondrial labels 1 and 4 were retained as valid
 mitochondrial profiles. Labels 2 and 3 were excluded as mitochondrial
-segmentation errors.
+segmentation artefacts.
+
+The example contains derived segmentation and QC outputs. The original source
+image is not duplicated in this companion repository.
 
 Detailed provenance and curation information is provided in
 [`docs/DATA_PROVENANCE.md`](docs/DATA_PROVENANCE.md).
@@ -202,6 +227,7 @@ Detailed provenance and curation information is provided in
 ├── CODE_OF_CONDUCT.md
 ├── CONTRIBUTING.md
 ├── LICENSE
+├── LICENSE-DATA.md
 ├── README.md
 ├── SECURITY.md
 └── requirements-python.txt
@@ -435,11 +461,14 @@ The repository contains seven automated workflows:
 | `.github/workflows/r-global-class-profile.yml` | Runs the global cristae class-profile analysis and verifies its table and figures. |
 | `.github/workflows/r-cristae-bland-altman.yml` | Runs the manual-versus-automated agreement analysis and verifies its statistical and figure outputs. |
 
-All seven workflows passed during the current pre-release validation.
+All seven workflows have passed during repository validation.
 
 The Python workflow is covered by synthetic tests. The R workflows are covered
 by integration checks that execute the complete analysis scripts against the
 included curated workbooks and verify the expected generated outputs.
+
+A final reproducibility run of all workflows is performed before the formal
+versioned release.
 
 ## Local testing and validation
 
@@ -471,7 +500,7 @@ total-cristae and heterogeneity workflows.
 `cristae_Bland_Altman.R` read the two curated workbooks directly and do not
 depend on `Prism_input.xlsx`.
 
-The current validation and future release-readiness work are documented in
+The validation and release-readiness procedures are documented in
 [`docs/VALIDATION_PLAN.md`](docs/VALIDATION_PLAN.md).
 
 ## Current status
@@ -482,10 +511,10 @@ The current validation and future release-readiness work are documented in
 | Python dependency record | Included |
 | Python synthetic tests | Passed |
 | Python GitHub Actions workflow | Passed |
-| Processed Python CSV files | Included |
-| Curated manual workbook | Included |
-| Curated automated workbook | Included |
-| Representative QC example | Included |
+| Processed Python CSV files | Included; approved for public release |
+| Curated manual workbook | Included; approved for public release |
+| Curated automated workbook | Included; approved for public release |
+| Representative QC example | Included; approved for public release |
 | Prism input preparation workflow | Implemented and passed |
 | Total-cristae analysis workflow | Implemented and passed |
 | Subject-heterogeneity workflow | Implemented and passed |
@@ -494,12 +523,14 @@ The current validation and future release-readiness work are documented in
 | Manual-versus-automated agreement workflow | Implemented and passed |
 | Verification of expected R output files | Passed |
 | Root-level citation metadata | Included |
+| Software license | MIT |
+| Data and QC license | CC BY 4.0 |
 | Formal versioned release | Not yet created |
 | Zenodo archive and DOI | Not yet created |
 
 The analyses contained in this repository represent the current analytical
-workflow. The curated data and analytical outputs in this repository are those
-reported in the associated publication.
+workflow. The curated data and analytical outputs are associated with the
+accompanying research publication.
 
 Full reproduction from raw microscopy images is outside the scope of this
 repository because raw images and upstream segmentation inputs are maintained
@@ -515,6 +546,9 @@ The repository includes:
 - the Python and R analysis scripts;
 - automated validation workflows.
 
+The research-derived materials currently included in the repository have been
+reviewed and approved for public release.
+
 The repository does not include:
 
 - raw microscopy images;
@@ -522,15 +556,16 @@ The repository does not include:
 - complete patient-level QC material;
 - confidential manuscript files;
 - protected source metadata;
-- generated results that have not been approved for public release.
+- research materials that have not been approved for public release.
 
 Before additional research-derived files are released, they should be reviewed
 for subject or sample identifiers, filenames, local paths, embedded metadata,
-confidential information, and publication status.
+confidential information, licensing, consent restrictions, and publication
+status.
 
 ## Citation
 
-Software citation metadata are provided in the root-level
+Citation metadata are provided in the root-level
 [`CITATION.cff`](CITATION.cff) file.
 
 The associated research article is intended to be the preferred scientific
@@ -540,8 +575,8 @@ The following information will be added after verification and formal release:
 
 - software version;
 - release date;
-- verified author affiliations;
-- article title, journal, publication year, and DOI;
+- verified publication metadata;
+- article DOI, when available;
 - Zenodo version DOI and concept DOI.
 
 Verified ORCID identifiers are included in `CITATION.cff`.
@@ -558,11 +593,17 @@ All contributors are expected to follow the project
 
 ## License
 
-The source code and original documentation in this repository are available
-under the [MIT License](LICENSE).
+Source code and original project documentation are licensed under the
+[MIT License](LICENSE).
 
-Licensing of the research data and QC material will be reviewed separately
-before the formal public release.
+Research-derived data and quality-control materials distributed under
+`data/curated/`, `data/processed/python/`, and `docs/qc_examples/` are licensed
+under the Creative Commons Attribution 4.0 International License (CC BY 4.0),
+as described in [`LICENSE-DATA.md`](LICENSE-DATA.md).
+
+The data license applies only to eligible materials actually distributed in
+this repository and does not grant rights to protected or external research
+materials.
 
 ## Security and responsible disclosure
 
