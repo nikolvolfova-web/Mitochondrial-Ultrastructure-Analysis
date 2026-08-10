@@ -2,45 +2,45 @@
 
 ## Supported versions
 
-This repository is a pre-release research-software project. No tagged or
-versioned release is currently supported. Security reports will be assessed
-against the current `main` branch.
+This repository is a research-software and analysis companion project.
+
+Security reports are assessed against the current `main` branch and, once
+versioned releases are published, against the latest supported release.
 
 | Repository state | Security support |
 |---|---|
 | Current `main` branch | Eligible for review and fixes |
-| Earlier commits, forks, or unofficial copies | Not supported |
-| Tagged releases | None published |
+| Latest tagged release | Eligible for review and fixes |
+| Earlier commits, older releases, forks, or unofficial copies | Not supported |
 
 ## Reporting a vulnerability
 
 Do not report a suspected security vulnerability in a public issue, pull
 request, discussion, commit message, or other public channel.
 
-This repository does not currently provide GitHub's private vulnerability
-reporting form. To request a private reporting channel:
+After public release, security vulnerabilities should be reported using
+GitHub's private vulnerability reporting feature available from the
+repository's **Security** page via **Report a vulnerability**.
 
-1. Open the
-   [Private security contact form](https://github.com/nikolvolfova-web/Analysis-of-Mitochondrial-Ultrastructure-and-Morphology/issues/new?template=03-security-contact.yml).
-2. Submit only the form's required confirmations.
-3. Do not include any vulnerability details, affected paths, reproduction
-   steps, screenshots, logs, data, or secrets in that issue.
-4. Wait for the maintainer to arrange an appropriate private channel before
-   sharing further information.
+While the repository remains private, collaborators should report suspected
+security issues to the maintainer using an existing private communication
+channel rather than a GitHub issue.
 
-Once a private channel has been arranged, include only the information needed
-to understand the problem:
+When submitting a security report, include only the information needed to
+understand the problem:
 
 - the affected file, component, or commit;
 - a clear description of the vulnerability and its possible impact;
 - privacy-safe reproduction steps using synthetic or redacted inputs;
-- the relevant R, operating-system, and package versions; and
-- a suggested mitigation, if known.
+- the relevant R or Python version, operating system, and package versions;
+- and a suggested mitigation, if known.
 
 Do not attach, paste, or link research workbooks, real subject- or image-level
 values, microscopy files, unpublished tables or figures, internal identifiers,
 article drafts, credentials, access tokens, or other confidential material.
-No vulnerability-reporting channel is approved for transferring research data.
+
+The vulnerability-reporting channel is not approved for transferring research
+data.
 
 If a credential or secret may have been exposed, revoke or rotate it
 immediately. In the report, identify the affected path or commit without
@@ -60,12 +60,16 @@ Examples include:
 Scientific disagreements, statistical-model questions, ordinary software
 bugs, documentation corrections, and reproducibility problems without a
 security impact should use a regular GitHub issue with a minimal synthetic
-example. Never include confidential or unpublished material in a public issue.
+example.
+
+Never include confidential, protected, or unpublished research material in a
+public issue.
 
 ## Disclosure and response
 
 Please allow the maintainer a reasonable opportunity to investigate and
-address a confirmed vulnerability before public disclosure. Reports will be
-reviewed as resources permit; this pre-release project does not currently
-offer a guaranteed response time, service-level agreement, bug bounty, or
-monetary reward.
+address a confirmed vulnerability before public disclosure.
+
+Reports will be reviewed as resources permit. This research repository does
+not provide a guaranteed response time, service-level agreement, bug bounty,
+or monetary reward.
