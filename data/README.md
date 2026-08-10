@@ -3,9 +3,11 @@
 This directory contains the reviewed analytical inputs and processed tabular
 outputs used by the mitochondrial ultrastructure analysis workflows.
 
-The repository is currently maintained as a private pre-release repository.
-Inclusion of a file here does not by itself mean that the file has been
-approved for unrestricted public redistribution.
+The research-derived files distributed in this repository have been reviewed
+and approved for public release. This approval applies only to the materials
+actually included in this repository and does not extend to raw microscopy
+images, protected source data, complete patient-level QC materials, or other
+research materials maintained outside the repository.
 
 ## Directory structure
 
@@ -78,6 +80,18 @@ preprocessing step.
 The complete Python output directories, upstream segmentation inputs, and raw
 microscopy images are maintained outside this repository.
 
+## Relationship to the upstream project
+
+This repository is a downstream analysis and publication companion repository.
+
+The source-image provenance and upstream image-analysis workflow are associated
+with:
+
+[Analysis_Mitochondrial_Ultrastructure_and_Morphology](https://github.com/LMCF-IMG/Analysis_Mitochondrial_Ultrastructure_and_Morphology)
+
+Raw microscopy images and the complete upstream segmentation dataset are not
+duplicated here.
+
 ## Data flow
 
 ```mermaid
@@ -98,6 +112,28 @@ flowchart TD
     AW --> R
 ```
 
+## Representative quality-control material
+
+A representative QC example is provided under:
+
+```text
+docs/qc_examples/C2_002_30000x/
+```
+
+This example documents the visual review of mitochondrial segmentation objects
+before preparation of the curated automated analytical dataset.
+
+It illustrates the type of segmentation artefact that was excluded during
+curation while preserving the original computational outputs unchanged.
+
+The original source image is not duplicated in this companion repository.
+
+For detailed provenance and curation information, see:
+
+```text
+docs/DATA_PROVENANCE.md
+```
+
 ## Files not included
 
 The repository does not contain:
@@ -108,7 +144,7 @@ The repository does not contain:
 - lookup tables connecting pseudonymous identifiers to real persons;
 - confidential manuscript files;
 - protected source metadata;
-- generated analytical results that have not been approved for inclusion.
+- research materials that have not been approved for public release.
 
 Generated R outputs belong under:
 
@@ -135,46 +171,63 @@ review it for:
 - licensing and consent restrictions;
 - consistency with the associated publication.
 
+Approval of the currently distributed files does not automatically approve
+additional research-derived files for future public release.
+
 ## Identifiers
 
 The analytical files use pseudonymous identifiers such as control and patient
 group codes.
 
-The repository must not contain a lookup table connecting these identifiers to
+The repository does not contain a lookup table connecting these identifiers to
 real persons or confidential clinical records.
-
-Identifier conventions must be verified again before formal public release.
 
 ## Licensing
 
-The repository MIT License applies to source code and original documentation.
+Source code and original project documentation are licensed under the MIT
+License provided in:
 
-It does not automatically grant redistribution rights for:
+```text
+LICENSE
+```
 
-- research measurements;
-- microscopy images;
-- segmentation masks;
-- processed research tables;
-- quality-control images;
-- publication figures;
-- manuscript content.
+The research-derived data and quality-control materials distributed in:
 
-Licensing and permitted reuse of research-derived data and QC material must be
-reviewed separately before formal public release.
+```text
+data/curated/
+data/processed/python/
+docs/qc_examples/
+```
+
+are licensed under the Creative Commons Attribution 4.0 International License
+(CC BY 4.0), as specified in:
+
+```text
+LICENSE-DATA.md
+```
+
+The CC BY 4.0 license applies only to eligible materials actually distributed
+in this repository. It does not grant access to or redistribution rights for
+raw microscopy images, protected research datasets, complete patient-level QC
+materials, confidential metadata, or other materials maintained outside this
+repository.
+
+Third-party materials, if any, remain subject to their own applicable licenses
+and terms.
 
 ## Current status
 
 | Data component | Repository status |
 | --- | --- |
-| Curated manual workbook | Included |
-| Curated automated workbook | Included |
-| Processed Python CSV files | Included |
-| Representative QC example | Included under `docs/qc_examples/` |
+| Curated manual workbook | Included; approved for public release |
+| Curated automated workbook | Included; approved for public release |
+| Processed Python CSV files | Included; approved for public release |
+| Representative QC example | Included; approved for public release |
 | Raw microscopy images | Maintained outside the repository |
 | Complete segmentation dataset | Maintained outside the repository |
 | Generated R results | Created as workflow outputs; not committed by default |
-| Formal public data-release approval | Pending |
-| Data and QC licensing decision | Pending |
+| Formal public data-release approval | Approved for included materials |
+| Data and QC license | CC BY 4.0 |
 
 For detailed provenance and curation information, see:
 
