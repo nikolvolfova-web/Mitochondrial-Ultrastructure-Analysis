@@ -51,6 +51,7 @@ jobs:
                 "openxlsx",
                 "lme4",
                 "lmerTest",
+                "emmeans",
                 "ggplot2",
                 "dplyr",
                 "tidyr",
