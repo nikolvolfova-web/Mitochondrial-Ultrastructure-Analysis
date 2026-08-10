@@ -10,15 +10,17 @@ independent analytical endpoint.
 
 ## Included outputs
 
-The directory contains the source control image and the corresponding
-representative outputs generated or used during the automated workflow,
-including:
+The directory contains representative derived outputs generated or used during
+the automated workflow, including:
 
-- the source image;
-- the mitochondrial segmentation mask;
-- the mitochondrial object-ID visualization;
-- the cristae overlay;
-- an additional workflow output associated with the same image.
+* the mitochondrial segmentation mask;
+* the mitochondrial object-ID visualization;
+* the cristae overlay;
+* an additional workflow output associated with the same image.
+
+The source image is not duplicated in this QC example. Source-data provenance
+and the upstream image-analysis workflow are associated with the
+`Analysis_Mitochondrial_Ultrastructure_and_Morphology` project.
 
 ## Quality-control decision
 
@@ -32,8 +34,8 @@ segmentation artefacts.
 
 Accordingly:
 
-- labels 1 and 4 were retained in the curated analytical dataset;
-- labels 2 and 3 were excluded as confirmed segmentation artefacts.
+* labels 1 and 4 were retained in the curated analytical dataset;
+* labels 2 and 3 were excluded as confirmed segmentation artefacts.
 
 The exclusion criterion was not based on the number of detected cristae.
 Valid mitochondrial profiles with zero detected cristae remained included.
