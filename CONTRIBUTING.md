@@ -257,6 +257,16 @@ All contributors must follow the project
 
 ## License
 
-By contributing to this repository, you agree that your contribution may be
+By contributing source code, scripts, workflows, tests, or original project
+documentation to this repository, you agree that your contribution may be
 distributed under the repository's [MIT License](LICENSE), unless a different
 written agreement is made before the contribution is accepted.
+
+Research-derived data and quality-control materials distributed under
+`data/curated/`, `data/processed/python/`, and `docs/qc_examples/` are licensed
+separately under the Creative Commons Attribution 4.0 International License
+(CC BY 4.0), as described in [LICENSE-DATA.md](LICENSE-DATA.md).
+
+Do not contribute research data, images, metadata, or other research-derived
+materials unless their public release and licensing status have been reviewed
+and approved.
