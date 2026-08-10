@@ -4,10 +4,11 @@ Publication companion repository for computational preprocessing, quality
 control, and statistical analysis of mitochondrial ultrastructure and cristae
 morphology data.
 
-> **Project status:** The Python preprocessing workflow and all six R analysis
-> workflows are implemented and have passed their GitHub Actions checks.
-> The repository is prepared for public release. A formal versioned release,
-> Zenodo archive, and DOI have not yet been created.
+> **Project status:** Version 1.0.0 has completed repository validation and the
+> final reproducibility run. The Python preprocessing workflow and all six R
+> analysis workflows have passed their GitHub Actions checks. The repository is
+> publicly available. The Zenodo archive and DOI will be added after the formal
+> GitHub release is created.
 
 ## Project scope
 
