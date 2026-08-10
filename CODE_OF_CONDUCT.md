@@ -2,154 +2,125 @@
 
 ## Our Pledge
 
-We pledge to make our community welcoming, safe, and equitable for all.
+We pledge to make participation in this project a welcoming, safe, and
+respectful experience for everyone.
 
-We are committed to fostering an environment that respects and promotes the
-dignity, rights, and contributions of all individuals, regardless of
-characteristics including race, ethnicity, caste, color, age, physical
-characteristics, neurodiversity, disability, sex or gender, gender identity or
-expression, sexual orientation, language, philosophy or religion, national or
-social origin, socio-economic position, level of education, or other status.
+We are committed to an environment in which contributors and users can
+participate without harassment or discrimination, regardless of age,
+disability, ethnicity, gender identity or expression, level of experience,
+nationality, personal appearance, race, religion, sexual identity or
+orientation, socio-economic status, or other personal characteristics.
 
-The same privileges of participation are extended to everyone who participates
-in good faith and in accordance with this Code of Conduct.
+## Expected Behavior
 
-## Encouraged Behaviors
+Examples of behavior that contributes to a positive project environment
+include:
 
-While acknowledging differences in social norms, we all strive to meet our
-community's expectations for positive behavior. We also understand that our
-words and actions may be interpreted differently than we intend based on
-culture, background, or native language.
+- treating other participants with respect and professionalism;
+- respecting differing viewpoints and experiences;
+- giving and accepting constructive feedback;
+- focusing criticism on ideas, methods, code, data, or documentation rather
+  than on individuals;
+- acknowledging mistakes and correcting them when appropriate;
+- respecting confidentiality and data-protection requirements; and
+- giving appropriate credit for contributions and sources.
 
-With these considerations in mind, we agree to behave mindfully toward each
-other and act in ways that center our shared values, including:
+## Unacceptable Behavior
 
-1. Respecting the purpose of our community, our activities, and our ways of
-   gathering.
-2. Engaging kindly and honestly with others.
-3. Respecting different viewpoints and experiences.
-4. Taking responsibility for our actions and contributions.
-5. Gracefully giving and accepting constructive feedback.
-6. Committing to repairing harm when it occurs.
-7. Behaving in other ways that promote and sustain the well-being of our
-   community.
+Examples of unacceptable behavior include:
 
-## Restricted Behaviors
+- harassment, intimidation, or discrimination;
+- insulting, demeaning, threatening, or personally attacking another person;
+- unwanted sexual attention or inappropriate sexualized language or imagery;
+- deliberate disruption of project discussions or collaboration;
+- publishing another person's private information without permission;
+- impersonating another person or deliberately misrepresenting authorship or
+  contribution;
+- knowingly sharing confidential, protected, or unpublished research material
+  without authorization;
+- plagiarism or deliberate failure to credit sources or contributors; and
+- other conduct that could reasonably be considered inappropriate in a
+  professional research or open-source environment.
 
-We agree to restrict the following behaviors in our community. Instances,
-threats, and promotion of these behaviors are violations of this Code of
-Conduct.
+## Research Data and Confidentiality
 
-1. **Harassment.** Violating explicitly expressed boundaries or engaging in
-   unnecessary personal attention after any clear request to stop.
-2. **Character attacks.** Making insulting, demeaning, or pejorative comments
-   directed at a community member or group of people.
-3. **Stereotyping or discrimination.** Characterizing anyone's personality or
-   behavior on the basis of immutable identities or traits.
-4. **Sexualization.** Behaving in a way that would generally be considered
-   inappropriately intimate in the context or purpose of the community.
-5. **Violating confidentiality.** Sharing or acting on someone's personal or
-   private information without their permission.
-6. **Endangerment.** Causing, encouraging, or threatening violence or other
-   harm toward any person or group.
-7. Behaving in other ways that threaten the well-being of our community.
+This repository accompanies a biomedical research project.
 
-### Other Restrictions
+Participants must not post confidential or protected research information in
+public project spaces. This includes, where applicable:
 
-1. **Misleading identity.** Impersonating someone else for any reason, or
-   pretending to be someone else to evade enforcement actions.
-2. **Failing to credit sources.** Not properly crediting the sources of content
-   you contribute.
-3. **Promotional materials.** Sharing marketing or other commercial content in
-   a way that is outside the norms of the community.
-4. **Irresponsible communication.** Failing to responsibly present content
-   which includes, links, or describes any other restricted behaviors.
+- patient- or subject-level information;
+- protected microscopy or source-image data;
+- unpublished research data not approved for public release;
+- internal identifiers;
+- article drafts or confidential peer-review material;
+- credentials, access tokens, passwords, or other secrets.
 
-## Reporting an Issue
+Questions about the scientific methods, analyses, code, documentation, or
+reproducibility may be discussed through normal project channels as long as no
+protected or confidential information is disclosed.
 
-Tensions can occur between community members even when they are trying their
-best to collaborate. Not every conflict represents a Code of Conduct violation,
-and this document reinforces behaviors and norms that can help avoid conflicts
-and minimize harm.
+## Reporting a Code of Conduct Issue
 
-To report a possible violation:
+Possible Code of Conduct violations should be reported privately whenever
+possible.
 
-1. Open the
-   [Code of conduct contact form](https://github.com/nikolvolfova-web/Analysis-of-Mitochondrial-Ultrastructure-and-Morphology/issues/new?template=04-code-of-conduct-contact.yml).
-2. Use the public form only to request a private reporting channel.
-3. Do not include names, incident details, quotations, screenshots, logs,
-   personal information, research data, unpublished material, or other
-   confidential content in the public issue.
-4. Wait for a project maintainer to arrange an appropriate private channel
-   before sharing further information.
+Do not place sensitive incident details, personal information, screenshots,
+confidential communications, protected research data, or unpublished material
+in a public GitHub issue, pull request, discussion, commit message, or other
+public project channel.
 
-Project maintainers will take reports seriously and will make a reasonable
-effort to respond, investigate, and protect safety and confidentiality. This
-pre-release project does not currently promise a specific response time or
-provide an independent moderation body.
+If you already have an appropriate private communication channel with the
+project maintainer, use that channel to request review of the incident.
 
-If a report concerns the repository maintainer, or the project reporting route
-is not safe or appropriate, use GitHub's
-[abuse-reporting tools](https://docs.github.com/articles/reporting-abuse-or-spam)
-for content that may violate GitHub's policies. Do not publish the report in a
-repository issue.
+For abusive behavior or content occurring on GitHub, GitHub's built-in abuse
+reporting tools may also be used. GitHub provides mechanisms for reporting
+users, repositories, issues, pull requests, discussions, comments, and other
+content that may violate its policies.
 
-## Addressing and Repairing Harm
+Security vulnerabilities should be reported according to `SECURITY.md` rather
+than through the Code of Conduct process, unless the incident also involves a
+conduct or privacy concern.
 
-If an investigation finds that this Code of Conduct has been violated, the
-following enforcement ladder may be used. The response will depend on the
-incident's impact on the people involved and the community. More serious
-violations may skip lower steps.
+## Enforcement
 
-### 1. Warning
+Project maintainers are responsible for interpreting and enforcing this Code
+of Conduct within project spaces.
 
-- **Event:** A violation involving a single incident or series of incidents.
-- **Consequence:** A private, written warning from the project maintainers.
-- **Repair:** Examples include a private written apology, acknowledgement of
-  responsibility, and clarification of expectations.
+Possible responses to a violation may include:
 
-### 2. Temporarily Limited Activities
+1. a private clarification or warning;
+2. a request to correct or remove inappropriate content;
+3. temporary restrictions on participation;
+4. removal of contributions or project privileges; or
+5. permanent exclusion from project spaces in cases of serious or repeated
+   misconduct.
 
-- **Event:** A repeated violation that previously resulted in a warning, or the
-  first occurrence of a more serious violation.
-- **Consequence:** A private, written warning with a time-limited restriction
-  on specified interactions or project activities.
-- **Repair:** Examples include an apology, reflection during the restricted
-  period, and thoughtful re-entry into community spaces.
+The response will depend on the nature, severity, context, and consequences of
+the behavior.
 
-### 3. Temporary Suspension
+Maintainers will make a reasonable effort to handle reports confidentially and
+to limit disclosure of identifying information to what is necessary for
+reviewing and addressing the issue.
 
-- **Event:** A pattern of repeated violations that warnings did not resolve, or
-  a single serious violation.
-- **Consequence:** Temporary removal from project interactions, with written
-  conditions for return.
-- **Repair:** Examples include respecting the suspension, meeting the specified
-  conditions for return, and reintegrating thoughtfully.
-
-### 4. Permanent Ban
-
-- **Event:** A pattern of violations that other steps failed to resolve, or a
-  violation so serious that continued participation cannot be made safe.
-- **Consequence:** Permanent removal from project spaces and interactions.
-- **Repair:** No return is available in cases of this severity.
-
-This enforcement ladder is a guideline and does not limit the maintainers'
-ability to act in the best interests of community safety.
+This research project does not provide a guaranteed response time, independent
+moderation body, or formal appeals process.
 
 ## Scope
 
-This Code of Conduct applies in all project spaces, including repositories,
-issues, pull requests, reviews, discussions, and other project communication.
-It also applies when an individual is officially representing the project in
-public or other spaces.
+This Code of Conduct applies to project spaces including:
+
+- issues;
+- pull requests and code review;
+- discussions;
+- repository comments;
+- project documentation and contributions; and
+- other communication in which an individual is representing the project.
 
 ## Attribution
 
-This Code of Conduct is adapted from the
-[Contributor Covenant, version 3.0](https://www.contributor-covenant.org/version/3/0/).
+This Code of Conduct is adapted from the Contributor Covenant, version 3.0,
+with project-specific provisions for research-data confidentiality and
+reporting procedures.
 
-Contributor Covenant is stewarded by the Organization for Ethical Source and
-licensed under the
-[Creative Commons Attribution-ShareAlike 4.0 International License](https://creativecommons.org/licenses/by-sa/4.0/).
-The enforcement ladder was inspired by the work of Mozilla's code of conduct
-team.
+Contributor Covenant is maintained by the Organization for Ethical Source.
