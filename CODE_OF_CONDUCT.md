@@ -123,4 +123,15 @@ This Code of Conduct is adapted from the Contributor Covenant, version 3.0,
 with project-specific provisions for research-data confidentiality and
 reporting procedures.
 
-Contributor Covenant is maintained by the Organization for Ethical Source.
+Contributor Covenant, version 3.0, is permanently available at:
+
+https://www.contributor-covenant.org/version/3/0/
+
+Contributor Covenant is stewarded by the Organization for Ethical Source and
+licensed under the Creative Commons Attribution-ShareAlike 4.0 International
+License (CC BY-SA 4.0):
+
+https://creativecommons.org/licenses/by-sa/4.0/
+
+This adapted Code of Conduct is distributed under the same CC BY-SA 4.0
+license.
