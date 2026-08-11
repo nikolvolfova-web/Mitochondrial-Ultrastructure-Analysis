@@ -80,7 +80,7 @@
 #   MAE                  lower is better
 #   RMSE                 lower is better
 #   bias                 ideal = 0
-#   cross-validated R2   higher is better; may be negative
+#   pooled CV R2         higher is better; may be negative
 #
 # Subject-balanced:
 #   subject_balanced_MAE
@@ -90,10 +90,20 @@
 #   calibration intercept   ideal = 0
 #   calibration slope       ideal = 1
 #
+# Pairwise predictive value:
+#   Q2_vs_training_subject_mean
+#      > 0  calibrated model outperforms the biological no-information baseline
+#      = 0  equal squared prediction error
+#      < 0  calibrated model performs worse than the baseline
+#
+#   Q2_vs_automated_identity
+#      > 0  statistical calibration improves on using Automated as-is
+#
 # Uncertainty
 # -----------
-# 95% confidence intervals are estimated by cluster bootstrap. Entire held-out
-# biological subjects are resampled, preserving within-subject dependence.
+# 95% confidence intervals are estimated by subject-cluster bootstrap of the
+# already generated LOSO out-of-sample predictions. Entire held-out biological
+# subjects are resampled, preserving within-subject dependence.
 #
 # IMPORTANT
 # ---------
@@ -214,6 +224,45 @@ predictive_r2 <- function(observed, predicted) {
 }
 
 
+# Predictive Q2 against an explicit out-of-sample reference strategy.
+#
+# Q2 > 0:
+#   the calibrated model has a smaller squared prediction error than the
+#   reference strategy.
+#
+# Q2 = 0:
+#   the calibrated model and the reference strategy perform equally.
+#
+# Q2 < 0:
+#   the calibrated model performs worse than the reference strategy.
+#
+# For the biologically most important comparison, the reference is the
+# leave-one-subject-out training-subject mean.
+predictive_q2 <- function(observed, predicted_model, predicted_reference) {
+
+  valid <- is.finite(observed) &
+    is.finite(predicted_model) &
+    is.finite(predicted_reference)
+
+  observed <- observed[valid]
+  predicted_model <- predicted_model[valid]
+  predicted_reference <- predicted_reference[valid]
+
+  if (length(observed) == 0) {
+    return(NA_real_)
+  }
+
+  model_sse <- sum((observed - predicted_model)^2, na.rm = TRUE)
+  reference_sse <- sum((observed - predicted_reference)^2, na.rm = TRUE)
+
+  if (!is.finite(reference_sse) || reference_sse <= 0) {
+    return(NA_real_)
+  }
+
+  1 - model_sse / reference_sse
+}
+
+
 # Calculate image-weighted and subject-balanced predictive performance.
 performance_metrics <- function(data, prediction_column, subject_column = "subject_id") {
 
@@ -226,7 +275,7 @@ performance_metrics <- function(data, prediction_column, subject_column = "subje
       MAE = NA_real_,
       RMSE = NA_real_,
       bias_pred_minus_obs = NA_real_,
-      R2_CV = NA_real_,
+      R2_CV_pooled = NA_real_,
       subject_balanced_MAE = NA_real_,
       subject_balanced_RMSE = NA_real_
     ))
@@ -250,7 +299,7 @@ performance_metrics <- function(data, prediction_column, subject_column = "subje
     MAE = mean(abs(errors), na.rm = TRUE),
     RMSE = sqrt(mean(errors^2, na.rm = TRUE)),
     bias_pred_minus_obs = mean(errors, na.rm = TRUE),
-    R2_CV = predictive_r2(d$observed, d[[prediction_column]]),
+    R2_CV_pooled = predictive_r2(d$observed, d[[prediction_column]]),
     subject_balanced_MAE = mean(subject_mae, na.rm = TRUE),
     subject_balanced_RMSE = sqrt(mean(subject_mse, na.rm = TRUE))
   )
@@ -369,6 +418,117 @@ cluster_bootstrap_ci <- function(data, prediction_column, n_bootstrap, seed) {
   })
 
   dplyr::bind_rows(rows)
+}
+
+
+# Subject-cluster bootstrap for pairwise predictive Q2.
+#
+# This uses the already generated out-of-sample LOSO predictions and resamples
+# entire biological subjects. It therefore quantifies uncertainty in the
+# comparison between the calibrated model and a reference prediction strategy
+# while preserving the within-subject image structure.
+cluster_bootstrap_q2_ci <- function(
+    data,
+    model_prediction_column,
+    reference_prediction_column,
+    n_bootstrap,
+    seed,
+    metric_name
+) {
+
+  subjects <- unique(as.character(data$subject_id))
+
+  if (length(subjects) < 2) {
+    stop("Cluster bootstrap requires at least two biological subjects.", call. = FALSE)
+  }
+
+  set.seed(seed)
+
+  bootstrap_values <- replicate(
+    n_bootstrap,
+    {
+
+      sampled_subjects <- sample(
+        subjects,
+        length(subjects),
+        replace = TRUE
+      )
+
+      bootstrap_parts <- vector(
+        "list",
+        length(sampled_subjects)
+      )
+
+      for (k in seq_along(sampled_subjects)) {
+
+        current <- data[
+          as.character(data$subject_id) == sampled_subjects[k],
+          ,
+          drop = FALSE
+        ]
+
+        current$bootstrap_cluster <- paste0(
+          sampled_subjects[k],
+          "__bootstrap_copy_",
+          k
+        )
+
+        bootstrap_parts[[k]] <- current
+      }
+
+      bootstrap_data <- dplyr::bind_rows(
+        bootstrap_parts
+      )
+
+      predictive_q2(
+        observed = bootstrap_data$observed,
+        predicted_model = bootstrap_data[[model_prediction_column]],
+        predicted_reference = bootstrap_data[[reference_prediction_column]]
+      )
+    }
+  )
+
+  finite_values <- bootstrap_values[
+    is.finite(bootstrap_values)
+  ]
+
+  if (length(finite_values) == 0) {
+    return(
+      tibble::tibble(
+        metric = metric_name,
+        bootstrap_median = NA_real_,
+        ci_95_lower = NA_real_,
+        ci_95_upper = NA_real_,
+        valid_bootstrap_replicates = 0L,
+        n_bootstrap_requested = n_bootstrap
+      )
+    )
+  }
+
+  tibble::tibble(
+    metric = metric_name,
+    bootstrap_median = stats::median(
+      finite_values
+    ),
+    ci_95_lower = unname(
+      stats::quantile(
+        finite_values,
+        0.025,
+        names = FALSE
+      )
+    ),
+    ci_95_upper = unname(
+      stats::quantile(
+        finite_values,
+        0.975,
+        names = FALSE
+      )
+    ),
+    valid_bootstrap_replicates = length(
+      finite_values
+    ),
+    n_bootstrap_requested = n_bootstrap
+  )
 }
 
 
@@ -1111,26 +1271,43 @@ get_metric <- function(endpoint_name, strategy_name, metric_name) {
 }
 
 benchmark_parts <- list()
+q2_parts <- list()
 
 for (endpoint_id in endpoint_definitions$endpoint) {
 
   rmse_cal <- get_metric(endpoint_id, "calibrated_lmm", "RMSE")
   mae_cal <- get_metric(endpoint_id, "calibrated_lmm", "MAE")
 
+  current_predictions <- all_predictions |>
+    dplyr::filter(endpoint == endpoint_id)
+
   references <- c(
     automated_identity = "Automated identity",
     training_subject_mean = "Training subject mean"
   )
 
+  reference_columns <- c(
+    automated_identity = "predicted_identity",
+    training_subject_mean = "predicted_training_subject_mean"
+  )
+
   current_rows <- list()
+  current_q2_rows <- list()
 
   for (j in seq_along(references)) {
 
     strategy_name <- names(references)[j]
     reference_label <- references[j]
+    reference_column <- reference_columns[[strategy_name]]
 
     rmse_ref <- get_metric(endpoint_id, strategy_name, "RMSE")
     mae_ref <- get_metric(endpoint_id, strategy_name, "MAE")
+
+    q2_value <- predictive_q2(
+      observed = current_predictions$observed,
+      predicted_model = current_predictions$predicted_calibrated,
+      predicted_reference = current_predictions[[reference_column]]
+    )
 
     current_rows[[j]] <- tibble::tibble(
       endpoint = endpoint_id,
@@ -1148,15 +1325,28 @@ for (endpoint_id in endpoint_definitions$endpoint) {
         is.finite(mae_ref) && mae_ref != 0,
         100 * (mae_ref - mae_cal) / mae_ref,
         NA_real_
-      )
+      ),
+      Q2_vs_reference = q2_value
+    )
+
+    current_q2_rows[[j]] <- tibble::tibble(
+      endpoint = endpoint_id,
+      reference_strategy = strategy_name,
+      metric = paste0("Q2_vs_", strategy_name),
+      estimate = q2_value
     )
   }
 
   benchmark_parts[[endpoint_id]] <- dplyr::bind_rows(current_rows)
+  q2_parts[[endpoint_id]] <- dplyr::bind_rows(current_q2_rows)
 }
 
 benchmark_comparison <- dplyr::bind_rows(benchmark_parts)
+q2_summary <- dplyr::bind_rows(q2_parts)
+
 print(benchmark_comparison)
+cat("\nPredictive Q2 summary:\n")
+print(q2_summary)
 
 
 # ----------------------------------------------------------------
@@ -1185,6 +1375,54 @@ for (i in seq_len(nrow(endpoint_definitions))) {
 }
 
 bootstrap_ci <- dplyr::bind_rows(bootstrap_parts)
+
+# Bootstrap pairwise Q2 values using the same subject-cluster resampling logic.
+q2_bootstrap_parts <- list()
+
+for (i in seq_len(nrow(endpoint_definitions))) {
+
+  endpoint_id <- endpoint_definitions$endpoint[i]
+
+  current_predictions <- all_predictions |>
+    dplyr::filter(endpoint == endpoint_id)
+
+  q2_identity <- cluster_bootstrap_q2_ci(
+    data = current_predictions,
+    model_prediction_column = "predicted_calibrated",
+    reference_prediction_column = "predicted_identity",
+    n_bootstrap = N_BOOTSTRAP,
+    seed = RANDOM_SEED + 5000L + 1000L * i,
+    metric_name = "Q2_vs_automated_identity"
+  ) |>
+    dplyr::mutate(
+      endpoint = endpoint_id,
+      reference_strategy = "automated_identity",
+      .before = 1
+    )
+
+  q2_training_mean <- cluster_bootstrap_q2_ci(
+    data = current_predictions,
+    model_prediction_column = "predicted_calibrated",
+    reference_prediction_column = "predicted_training_subject_mean",
+    n_bootstrap = N_BOOTSTRAP,
+    seed = RANDOM_SEED + 6000L + 1000L * i,
+    metric_name = "Q2_vs_training_subject_mean"
+  ) |>
+    dplyr::mutate(
+      endpoint = endpoint_id,
+      reference_strategy = "training_subject_mean",
+      .before = 1
+    )
+
+  q2_bootstrap_parts[[endpoint_id]] <- dplyr::bind_rows(
+    q2_identity,
+    q2_training_mean
+  )
+}
+
+q2_bootstrap_ci <- dplyr::bind_rows(
+  q2_bootstrap_parts
+)
 
 
 # ----------------------------------------------------------------
@@ -1237,8 +1475,8 @@ for (endpoint_id in endpoint_definitions$endpoint) {
     theme_bw() +
     theme(plot.title = element_text(face = "bold"))
 
-  ggsave(file.path(endpoint_dir, "01_manual_vs_automated.png"), p1, 7.4, 5.6, dpi = 300)
-  ggsave(file.path(endpoint_dir, "01_manual_vs_automated.pdf"), p1, 7.4, 5.6)
+  ggsave(filename = file.path(endpoint_dir, "01_manual_vs_automated.png"), plot = p1, width = 7.4, height = 5.6, units = "in", dpi = 300)
+  ggsave(filename = file.path(endpoint_dir, "01_manual_vs_automated.pdf"), plot = p1, width = 7.4, height = 5.6, units = "in")
 
   # Figure 2: the central predictive-validation figure.
   # Every point is genuinely out of sample at the subject level.
@@ -1258,8 +1496,8 @@ for (endpoint_id in endpoint_definitions$endpoint) {
     theme_bw() +
     theme(plot.title = element_text(face = "bold"))
 
-  ggsave(file.path(endpoint_dir, "02_LOSO_predicted_vs_observed.png"), p2, 7.4, 5.6, dpi = 300)
-  ggsave(file.path(endpoint_dir, "02_LOSO_predicted_vs_observed.pdf"), p2, 7.4, 5.6)
+  ggsave(filename = file.path(endpoint_dir, "02_LOSO_predicted_vs_observed.png"), plot = p2, width = 7.4, height = 5.6, units = "in", dpi = 300)
+  ggsave(filename = file.path(endpoint_dir, "02_LOSO_predicted_vs_observed.pdf"), plot = p2, width = 7.4, height = 5.6, units = "in")
 
   # Figure 3: held-out error for each biological subject.
   subject_plot_data <- subject_performance |>
@@ -1290,8 +1528,8 @@ for (endpoint_id in endpoint_definitions$endpoint) {
     theme_bw() +
     theme(plot.title = element_text(face = "bold"))
 
-  ggsave(file.path(endpoint_dir, "03_subject_level_MAE.png"), p3, 8.2, 5.2, dpi = 300)
-  ggsave(file.path(endpoint_dir, "03_subject_level_MAE.pdf"), p3, 8.2, 5.2)
+  ggsave(filename = file.path(endpoint_dir, "03_subject_level_MAE.png"), plot = p3, width = 8.2, height = 5.2, units = "in", dpi = 300)
+  ggsave(filename = file.path(endpoint_dir, "03_subject_level_MAE.pdf"), plot = p3, width = 8.2, height = 5.2, units = "in")
 
   # Full-data model diagnostics are secondary diagnostics only.
   diagnostic_data <- all_full_diagnostics |>
@@ -1311,8 +1549,8 @@ for (endpoint_id in endpoint_definitions$endpoint) {
     theme_bw() +
     theme(plot.title = element_text(face = "bold"))
 
-  ggsave(file.path(endpoint_dir, "04_full_model_residuals_vs_fitted.png"), p4, 7.2, 5.2, dpi = 300)
-  ggsave(file.path(endpoint_dir, "04_full_model_residuals_vs_fitted.pdf"), p4, 7.2, 5.2)
+  ggsave(filename = file.path(endpoint_dir, "04_full_model_residuals_vs_fitted.png"), plot = p4, width = 7.2, height = 5.2, units = "in", dpi = 300)
+  ggsave(filename = file.path(endpoint_dir, "04_full_model_residuals_vs_fitted.pdf"), plot = p4, width = 7.2, height = 5.2, units = "in")
 
   p5 <- ggplot(
     diagnostic_data,
@@ -1328,8 +1566,8 @@ for (endpoint_id in endpoint_definitions$endpoint) {
     theme_bw() +
     theme(plot.title = element_text(face = "bold"))
 
-  ggsave(file.path(endpoint_dir, "05_full_model_residual_QQ.png"), p5, 7.2, 5.2, dpi = 300)
-  ggsave(file.path(endpoint_dir, "05_full_model_residual_QQ.pdf"), p5, 7.2, 5.2)
+  ggsave(filename = file.path(endpoint_dir, "05_full_model_residual_QQ.png"), plot = p5, width = 7.2, height = 5.2, units = "in", dpi = 300)
+  ggsave(filename = file.path(endpoint_dir, "05_full_model_residual_QQ.pdf"), plot = p5, width = 7.2, height = 5.2, units = "in")
 }
 
 
@@ -1362,8 +1600,10 @@ writexl::write_xlsx(
   list(
     overall_performance = overall_performance,
     benchmark_comparison = benchmark_comparison,
+    predictive_Q2 = q2_summary,
     subject_performance = subject_performance,
     bootstrap_95CI = bootstrap_ci,
+    Q2_bootstrap_95CI = q2_bootstrap_ci,
     full_model_fixed = all_full_fixed,
     full_model_random = all_full_random,
     full_model_status = full_model_status
@@ -1419,6 +1659,12 @@ print(overall_performance)
 cat("\n===== BENCHMARK COMPARISON =====\n\n")
 print(benchmark_comparison)
 
+cat("\n===== PREDICTIVE Q2 =====\n\n")
+print(q2_summary)
+
+cat("\n===== Q2 SUBJECT-CLUSTER BOOTSTRAP 95% CIs =====\n\n")
+print(q2_bootstrap_ci)
+
 cat("\n===== SUBJECT-LEVEL PERFORMANCE =====\n\n")
 print(subject_performance)
 
@@ -1431,7 +1677,7 @@ print(all_full_fixed)
 cat("\n===== FULL-DATA CALIBRATION MODEL RANDOM EFFECTS =====\n\n")
 print(all_full_random)
 
-cat("\n===== FULL-DATA MODEL SINGULARITY STATUS =====\n\n")
+cat("\n===== FULL-DATA MODEL STATUS =====\n\n")
 print(full_model_status)
 
 cat("\n===== SUBJECT-CLUSTER BOOTSTRAP 95% CIs =====\n\n")
