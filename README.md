@@ -6,12 +6,14 @@ Publication companion repository for computational preprocessing, quality
 control, and statistical analysis of mitochondrial ultrastructure and cristae
 morphology data.
 
-> **Project status:** Version 1.0.0 has completed repository validation and the
-> final reproducibility run. The Python preprocessing workflow and all six R
-> analysis workflows have passed their GitHub Actions checks. The repository is
-> publicly available and version 1.0.0 is archived in Zenodo.
+> **Project status:** Version 1.0.0 completed repository validation and the
+> final reproducibility run and is archived in Zenodo. Current development adds
+> subject-level predictive validation of automated cristae quantification and a
+> log-transformed sensitivity analysis. Both new workflows have passed their
+> GitHub Actions integration checks and are being prepared for the next
+> versioned release.
 >
-> **Version DOI:** [10.5281/zenodo.21872764](https://doi.org/10.5281/zenodo.21872764)  
+> **Archived v1.0.0 version DOI:** [10.5281/zenodo.21872764](https://doi.org/10.5281/zenodo.21872764)  
 > **Concept DOI:** [10.5281/zenodo.21872763](https://doi.org/10.5281/zenodo.21872763)
 
 ## Project scope
@@ -93,6 +95,8 @@ flowchart TD
 
     PT --> T["scripts/R/analyze-total-cristae.R"]
     PT --> H["scripts/R/Heterogeneity_subjects.R"]
+    PT --> PV["scripts/R/cristae_prediction_validation.R"]
+    PT --> LS["scripts/R/cristae_log_sensitivity_analysis.R"]
 
     M2 --> LMM["scripts/R/Cristae_LMM.R"]
     A --> LMM
@@ -105,9 +109,11 @@ flowchart TD
 
     T --> O1["Total-cristae tables and diagnostics"]
     H --> O2["Subject-level heterogeneity outputs"]
-    LMM --> O3["LMM tables, plots, summaries, and diagnostics"]
-    GCP --> O4["Global class-profile table and figures"]
-    BA --> O5["Agreement statistics, tables, and figures"]
+    PV --> O3["LOSO predictions, performance metrics, Q2, bootstrap CIs, and diagnostics"]
+    LS --> O4["Log1p LOSO sensitivity results with Duan retransformation"]
+    LMM --> O5["LMM tables, plots, summaries, and diagnostics"]
+    GCP --> O6["Global class-profile table and figures"]
+    BA --> O7["Agreement statistics, tables, and figures"]
 ```
 
 ## Data provenance and quality control
@@ -186,6 +192,8 @@ Detailed provenance and curation information is provided in
 │       ├── python-tests.yml
 │       ├── r-cristae-bland-altman.yml
 │       ├── r-cristae-lmm.yml
+│       ├── r-cristae-log-sensitivity.yml
+│       ├── r-cristae-prediction-validation.yml
 │       ├── r-global-class-profile.yml
 │       ├── r-heterogeneity.yml
 │       ├── r-prepare-prism.yml
@@ -220,6 +228,8 @@ Detailed provenance and curation information is provided in
 │   │   ├── Heterogeneity_subjects.R
 │   │   ├── analyze-total-cristae.R
 │   │   ├── cristae_Bland_Altman.R
+│   │   ├── cristae_log_sensitivity_analysis.R
+│   │   ├── cristae_prediction_validation.R
 │   │   └── prepare_prism_input.R
 │   ├── python/
 │   │   └── count_cristae_per_mito.py
@@ -449,12 +459,98 @@ Bland_Altman_and_scatter_panel.png
 Bland_Altman_and_scatter_panel.tiff
 ```
 
+### 7. Validate predictive calibration in unseen biological subjects
+
+```bash
+Rscript scripts/R/cristae_prediction_validation.R
+```
+
+Input:
+
+```text
+results/derived/Prism_input.xlsx
+worksheet: compare_images
+```
+
+This workflow asks whether automated cristae quantification can predict the
+corresponding manual reference measurement in a previously unseen biological
+subject. It uses leave-one-subject-out cross-validation (LOSO-CV), holding out
+all images from one biological subject at a time and predicting that subject
+with fixed effects only.
+
+The primary endpoint is:
+
+```text
+manual_mean_per_mito ~ auto_mean_per_mito
+```
+
+The secondary endpoint is:
+
+```text
+manual_total ~ auto_total
+```
+
+The calibrated mixed-effects model is compared with two explicit out-of-sample
+benchmarks:
+
+- `automated_identity`: predicted Manual = observed Automated;
+- `training_subject_mean`: equal-weight mean of the subject-specific Manual
+  means in the training set.
+
+The workflow reports image-weighted and subject-balanced prediction errors,
+pooled cross-validated R2, calibration intercept and slope, predictive Q2
+against both benchmarks, subject-cluster bootstrap 95% confidence intervals,
+LOSO fold diagnostics, and a descriptive full-data calibration model.
+
+Primary output root:
+
+```text
+results/derived/cristae_prediction_validation/
+```
+
+### 8. Run the log-transformed predictive sensitivity analysis
+
+```bash
+Rscript scripts/R/cristae_log_sensitivity_analysis.R
+```
+
+Input:
+
+```text
+results/derived/Prism_input.xlsx
+worksheet: compare_images
+```
+
+This workflow is a sensitivity analysis for the primary predictive validation.
+It retains the same subject-level LOSO design but fits the calibration
+relationship on the `log1p` scale:
+
+```text
+log1p(Manual) ~ log1p(Automated) + (1 | subject_id)
+```
+
+Held-out subjects are predicted with fixed effects only. Predictions are
+returned to the original measurement scale with a fold-specific Duan smearing
+correction estimated exclusively from the training data.
+
+The sensitivity workflow uses the same primary and secondary endpoints,
+prediction benchmarks, predictive Q2 comparisons, subject-balanced metrics,
+cluster-bootstrap uncertainty analysis, and convergence/singularity checks as
+the primary predictive workflow. It is intended to assess robustness of the
+primary predictive conclusion and does not replace the original-scale model.
+
+Primary output root:
+
+```text
+results/derived/log_sensitivity_prediction/
+```
+
 Additional script-level documentation is provided in
 [`scripts/README.md`](scripts/README.md).
 
 ## GitHub Actions
 
-The repository contains seven automated workflows:
+The repository contains nine automated workflows:
 
 | Workflow file | Purpose |
 | --- | --- |
@@ -465,8 +561,12 @@ The repository contains seven automated workflows:
 | `.github/workflows/r-cristae-lmm.yml` | Runs the manual and automated LMM analyses and verifies their outputs. |
 | `.github/workflows/r-global-class-profile.yml` | Runs the global cristae class-profile analysis and verifies its table and figures. |
 | `.github/workflows/r-cristae-bland-altman.yml` | Runs the manual-versus-automated agreement analysis and verifies its statistical and figure outputs. |
+| `.github/workflows/r-cristae-prediction-validation.yml` | Regenerates the Prism input, runs subject-level LOSO predictive validation, verifies the expected outputs, and uploads the results as an artifact. |
+| `.github/workflows/r-cristae-log-sensitivity.yml` | Regenerates the Prism input, runs the log-transformed LOSO sensitivity analysis, verifies the expected outputs, and uploads the results as an artifact. |
 
-All seven workflows have passed during repository validation.
+The seven workflows included in the archived `v1.0.0` release passed release
+validation. The two predictive-development workflows have also passed their
+GitHub Actions integration runs in the current development state.
 
 The Python workflow is covered by synthetic tests. The R workflows are covered
 by integration checks that execute the complete analysis scripts against the
@@ -487,7 +587,7 @@ python -m unittest discover -s tests/python -p "test_*.py" -v
 
 ### R workflow validation
 
-Run the six R scripts from the repository root:
+Run the eight R scripts from the repository root:
 
 ```bash
 Rscript scripts/R/prepare_prism_input.R
@@ -496,10 +596,13 @@ Rscript scripts/R/Heterogeneity_subjects.R
 Rscript scripts/R/Cristae_LMM.R
 Rscript scripts/R/Global_class_profile_across_cristae_labels.R
 Rscript scripts/R/cristae_Bland_Altman.R
+Rscript scripts/R/cristae_prediction_validation.R
+Rscript scripts/R/cristae_log_sensitivity_analysis.R
 ```
 
 `prepare_prism_input.R` creates the shared Prism input required by the
-total-cristae and heterogeneity workflows.
+total-cristae, heterogeneity, predictive-validation, and log-sensitivity
+workflows.
 
 `Cristae_LMM.R`, `Global_class_profile_across_cristae_labels.R`, and
 `cristae_Bland_Altman.R` read the two curated workbooks directly and do not
@@ -526,6 +629,8 @@ The validation and release-readiness procedures are documented in
 | Cristae LMM workflow | Implemented and passed |
 | Global cristae class-profile workflow | Implemented and passed |
 | Manual-versus-automated agreement workflow | Implemented and passed |
+| Predictive validation workflow | Implemented and passed in current development |
+| Log-transformed predictive sensitivity workflow | Implemented and passed in current development |
 | Verification of expected R output files | Passed |
 | Root-level citation metadata | Included |
 | Software license | MIT |
@@ -535,9 +640,11 @@ The validation and release-readiness procedures are documented in
 | Zenodo version DOI | 10.5281/zenodo.21872764 |
 | Zenodo concept DOI | 10.5281/zenodo.21872763 |
 
-The analyses contained in this repository represent the current analytical
-workflow. The curated data and analytical outputs are associated with the
-accompanying research publication.
+The archived `v1.0.0` release remains unchanged and citable through its
+version DOI. The current development state extends that validated release with
+subject-level predictive validation and a log-transformed sensitivity analysis.
+The curated data and analytical outputs are associated with the accompanying
+research publication.
 
 Full reproduction from raw microscopy images is outside the scope of this
 repository because raw images and upstream segmentation inputs are maintained
