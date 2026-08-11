@@ -168,6 +168,37 @@ safe_numeric <- function(x) {
 }
 
 
+# Summarize optimizer/convergence diagnostics from an lmer model.
+# Singularity and convergence are reported separately because they represent
+# different model-quality issues.
+model_convergence_status <- function(model) {
+
+  optimizer_code <- model@optinfo$conv$opt
+  convergence_messages <- model@optinfo$conv$lme4$messages
+
+  optimizer_ok <- is.null(optimizer_code) ||
+    all(unlist(optimizer_code, use.names = FALSE) == 0)
+
+  messages_ok <- is.null(convergence_messages) ||
+    length(convergence_messages) == 0
+
+  list(
+    ok = isTRUE(optimizer_ok) && isTRUE(messages_ok),
+    optimizer_code = if (is.null(optimizer_code)) {
+      NA_character_
+    } else {
+      paste(as.character(unlist(optimizer_code, use.names = FALSE)), collapse = "; ")
+    },
+    message = if (is.null(convergence_messages) ||
+                  length(convergence_messages) == 0) {
+      ""
+    } else {
+      paste(as.character(convergence_messages), collapse = " | ")
+    }
+  )
+}
+
+
 # Cross-validated R2 calculated from pooled out-of-sample predictions.
 # A negative value is allowed and means that predictions are worse than
 # predicting the overall observed mean.
@@ -432,6 +463,7 @@ fit_loso_endpoint <- function(
     )
 
     singular_fit <- lme4::isSingular(fit, tol = SINGULAR_TOL)
+    convergence <- model_convergence_status(fit)
     fixed_effects <- lme4::fixef(fit)
 
     # Critical anti-leakage step:
@@ -498,7 +530,10 @@ fit_loso_endpoint <- function(
       slope_automated = unname(fixed_effects["automated"]),
       subject_random_intercept_sd = subject_sd,
       residual_sd = residual_sd,
-      singular_fit = singular_fit
+      singular_fit = singular_fit,
+      convergence_ok = convergence$ok,
+      optimizer_code = convergence$optimizer_code,
+      convergence_message = convergence$message
     )
   }
 
@@ -519,6 +554,8 @@ fit_loso_endpoint <- function(
       optCtrl = list(maxfun = 100000)
     )
   )
+
+  full_convergence <- model_convergence_status(full_model)
 
   full_fixed <- as.data.frame(summary(full_model)$coefficients) |>
     tibble::rownames_to_column("term") |>
@@ -547,6 +584,9 @@ fit_loso_endpoint <- function(
     full_fixed = full_fixed,
     full_random = full_random,
     full_singular = lme4::isSingular(full_model, tol = SINGULAR_TOL),
+    full_convergence_ok = full_convergence$ok,
+    full_optimizer_code = full_convergence$optimizer_code,
+    full_convergence_message = full_convergence$message,
     full_diagnostics = full_diagnostics
   )
 }
@@ -742,16 +782,63 @@ announce_step(5, "Derive subject identifiers and perform quality control")
 # This reproduces the subject definition used in analyze-total-cristae.R:
 # controls are distinguished from the image ID (C1_ / C2_);
 # patient subjects are identified by group (P1-P10).
+#
+# Fail explicitly on an unexpected group label instead of silently assigning
+# an unknown group to HD.
+group_character <- as.character(raw$group)
+image_character <- as.character(raw$image_id)
+
+valid_ctrl_group <- grepl("^Ctrl", group_character)
+valid_hd_group <- grepl("^P[0-9]+$", group_character)
+
+unexpected_groups <- sort(unique(
+  group_character[
+    is.na(group_character) |
+      !(valid_ctrl_group | valid_hd_group)
+  ]
+))
+
+if (length(unexpected_groups) > 0) {
+  stop(
+    paste0(
+      "Unexpected group label(s) detected: ",
+      paste(unexpected_groups, collapse = ", "),
+      ". Expected control labels beginning with 'Ctrl' or patient labels ",
+      "matching P<number>."
+    ),
+    call. = FALSE
+  )
+}
+
+invalid_control_image_ids <- sort(unique(
+  image_character[
+    valid_ctrl_group &
+      (is.na(image_character) | !grepl("^C[12]_", image_character))
+  ]
+))
+
+if (length(invalid_control_image_ids) > 0) {
+  stop(
+    paste0(
+      "Control image identifier(s) do not match the expected C1_/C2_ pattern: ",
+      paste(invalid_control_image_ids, collapse = ", ")
+    ),
+    call. = FALSE
+  )
+}
+
 analysis_data <- raw |>
   dplyr::mutate(
     subject_id = dplyr::case_when(
       grepl("^C1_", image_id) ~ "C1",
       grepl("^C2_", image_id) ~ "C2",
-      TRUE ~ as.character(group)
+      grepl("^P[0-9]+$", group) ~ as.character(group),
+      TRUE ~ NA_character_
     ),
     disease_status = dplyr::case_when(
       grepl("^Ctrl", group) ~ "Ctrl",
-      TRUE ~ "HD"
+      grepl("^P[0-9]+$", group) ~ "HD",
+      TRUE ~ NA_character_
     ),
     subject_id = factor(subject_id),
     disease_status = factor(disease_status, levels = c("Ctrl", "HD"))
@@ -910,6 +997,21 @@ full_model_status <- tibble::tibble(
     endpoint_results,
     function(x) x$full_singular,
     FUN.VALUE = logical(1)
+  ),
+  convergence_ok = vapply(
+    endpoint_results,
+    function(x) x$full_convergence_ok,
+    FUN.VALUE = logical(1)
+  ),
+  optimizer_code = vapply(
+    endpoint_results,
+    function(x) x$full_optimizer_code,
+    FUN.VALUE = character(1)
+  ),
+  convergence_message = vapply(
+    endpoint_results,
+    function(x) x$full_convergence_message,
+    FUN.VALUE = character(1)
   )
 )
 
@@ -925,9 +1027,30 @@ if (any(all_fold_models$singular_fit)) {
   )
 }
 
+if (any(!all_fold_models$convergence_ok)) {
+  warning(
+    paste0(
+      "At least one LOSO model reported an optimizer/convergence issue. ",
+      "Inspect convergence_ok, optimizer_code, and convergence_message in ",
+      "LOSO_fold_models before interpreting predictive performance."
+    ),
+    call. = FALSE
+  )
+}
+
 if (any(full_model_status$singular_fit)) {
   warning(
     "At least one full-data calibration model is singular. Review model diagnostics.",
+    call. = FALSE
+  )
+}
+
+if (any(!full_model_status$convergence_ok)) {
+  warning(
+    paste0(
+      "At least one full-data calibration model reported an optimizer/convergence ",
+      "issue. Review full_model_status before publication."
+    ),
     call. = FALSE
   )
 }
