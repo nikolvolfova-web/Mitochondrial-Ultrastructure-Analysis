@@ -658,7 +658,8 @@ cluster_bootstrap_q2 <- function(
         bootstrap_median = NA_real_,
         ci_95_lower = NA_real_,
         ci_95_upper = NA_real_,
-        valid_bootstrap_replicates = 0L
+        valid_bootstrap_replicates = 0L,
+        n_bootstrap_requested = n_bootstrap
       )
     )
   }
@@ -684,7 +685,8 @@ cluster_bootstrap_q2 <- function(
     ),
     valid_bootstrap_replicates = length(
       values
-    )
+    ),
+    n_bootstrap_requested = n_bootstrap
   )
 }
 
