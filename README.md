@@ -3,17 +3,16 @@
 [![DOI](https://zenodo.org/badge/1319598937.svg)](https://doi.org/10.5281/zenodo.21872763)
 
 Publication companion repository for computational preprocessing, quality
-control, and statistical analysis of mitochondrial ultrastructure and cristae
-morphology data.
+control, validation, and statistical analysis of mitochondrial ultrastructure
+and cristae morphology data.
 
-> **Project status:** Version 1.0.0 completed repository validation and the
-> final reproducibility run and is archived in Zenodo. Current development adds
-> subject-level predictive validation of automated cristae quantification and a
-> log-transformed sensitivity analysis. Both new workflows have passed their
-> GitHub Actions integration checks and are being prepared for the next
-> versioned release.
+> **Project status:** Version 1.1.0 is the current released version of the
+> repository. It extends the validated v1.0.0 workflow with subject-level
+> predictive validation of automated cristae quantification and a
+> log-transformed predictive sensitivity analysis. The release is publicly
+> available on GitHub and archived in Zenodo.
 >
-> **Archived v1.0.0 version DOI:** [10.5281/zenodo.21872764](https://doi.org/10.5281/zenodo.21872764)  
+> **Version v1.1.0 DOI:** [10.5281/zenodo.21890084](https://doi.org/10.5281/zenodo.21890084)
 > **Concept DOI:** [10.5281/zenodo.21872763](https://doi.org/10.5281/zenodo.21872763)
 
 ## Project scope
@@ -61,9 +60,9 @@ curation, statistical analysis, validation, and publication outputs
 
 ## Authors and contributions
 
-- **Nikol Volfová** — manual data evaluation, R-based statistical analyses,
+* **Nikol Volfová** — manual data evaluation, R-based statistical analyses,
   repository integration, documentation, testing, and maintenance.
-- **Martin Čapek** ([LMCF-IMG](https://github.com/LMCF-IMG)) — original author
+* **Martin Čapek** ([LMCF-IMG](https://github.com/LMCF-IMG)) — original author
   of the Python preprocessing script and its core computational logic.
 
 The repository version of the Python script was adapted for portable
@@ -370,16 +369,16 @@ Planned contrasts compare Controls with patient groups P1-P10.
 
 The workflow exports:
 
-- structured Excel workbooks;
-- quality-control and numeric-conversion audits;
-- descriptive statistics;
-- model-estimated means;
-- planned contrasts;
-- raw and Benjamini-Hochberg adjusted p-values;
-- significant-result and review-required tables;
-- individual plots;
-- summary heatmaps and contrast overviews;
-- residual-versus-fitted and Q-Q diagnostic plots.
+* structured Excel workbooks;
+* quality-control and numeric-conversion audits;
+* descriptive statistics;
+* model-estimated means;
+* planned contrasts;
+* raw and Benjamini-Hochberg adjusted p-values;
+* significant-result and review-required tables;
+* individual plots;
+* summary heatmaps and contrast overviews;
+* residual-versus-fitted and Q-Q diagnostic plots.
 
 Primary output root:
 
@@ -428,12 +427,12 @@ data/curated/cristae_automated.xlsx
 
 The workflow:
 
-- aggregates `Label 2` through `Label 12` to one total cristae count per image;
-- pairs manual and automated measurements by worksheet and image identifier;
-- performs Bland-Altman agreement analysis;
-- calculates Pearson correlation and ordinary least-squares regression;
-- evaluates proportional bias and the distribution of paired differences;
-- exports processed data, statistics, diagnostics, summaries, and
+* aggregates `Label 2` through `Label 12` to one total cristae count per image;
+* pairs manual and automated measurements by worksheet and image identifier;
+* performs Bland-Altman agreement analysis;
+* calculates Pearson correlation and ordinary least-squares regression;
+* evaluates proportional bias and the distribution of paired differences;
+* exports processed data, statistics, diagnostics, summaries, and
   publication-quality figures.
 
 Primary output root:
@@ -493,8 +492,8 @@ manual_total ~ auto_total
 The calibrated mixed-effects model is compared with two explicit out-of-sample
 benchmarks:
 
-- `automated_identity`: predicted Manual = observed Automated;
-- `training_subject_mean`: equal-weight mean of the subject-specific Manual
+* `automated_identity`: predicted Manual = observed Automated;
+* `training_subject_mean`: equal-weight mean of the subject-specific Manual
   means in the training set.
 
 The workflow reports image-weighted and subject-balanced prediction errors,
@@ -552,28 +551,25 @@ Additional script-level documentation is provided in
 
 The repository contains nine automated workflows:
 
-| Workflow file | Purpose |
-| --- | --- |
-| `.github/workflows/python-tests.yml` | Runs the synthetic Python test suite. |
-| `.github/workflows/r-prepare-prism.yml` | Runs Prism input preparation and verifies the generated workbook. |
-| `.github/workflows/r-total-cristae.yml` | Runs the total-cristae analysis and verifies its outputs. |
-| `.github/workflows/r-heterogeneity.yml` | Runs the subject-heterogeneity analysis and verifies its outputs. |
-| `.github/workflows/r-cristae-lmm.yml` | Runs the manual and automated LMM analyses and verifies their outputs. |
-| `.github/workflows/r-global-class-profile.yml` | Runs the global cristae class-profile analysis and verifies its table and figures. |
-| `.github/workflows/r-cristae-bland-altman.yml` | Runs the manual-versus-automated agreement analysis and verifies its statistical and figure outputs. |
-| `.github/workflows/r-cristae-prediction-validation.yml` | Regenerates the Prism input, runs subject-level LOSO predictive validation, verifies the expected outputs, and uploads the results as an artifact. |
-| `.github/workflows/r-cristae-log-sensitivity.yml` | Regenerates the Prism input, runs the log-transformed LOSO sensitivity analysis, verifies the expected outputs, and uploads the results as an artifact. |
+| Workflow file                                           | Purpose                                                                                                                                                 |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.github/workflows/python-tests.yml`                    | Runs the synthetic Python test suite.                                                                                                                   |
+| `.github/workflows/r-prepare-prism.yml`                 | Runs Prism input preparation and verifies the generated workbook.                                                                                       |
+| `.github/workflows/r-total-cristae.yml`                 | Runs the total-cristae analysis and verifies its outputs.                                                                                               |
+| `.github/workflows/r-heterogeneity.yml`                 | Runs the subject-heterogeneity analysis and verifies its outputs.                                                                                       |
+| `.github/workflows/r-cristae-lmm.yml`                   | Runs the manual and automated LMM analyses and verifies their outputs.                                                                                  |
+| `.github/workflows/r-global-class-profile.yml`          | Runs the global cristae class-profile analysis and verifies its table and figures.                                                                      |
+| `.github/workflows/r-cristae-bland-altman.yml`          | Runs the manual-versus-automated agreement analysis and verifies its statistical and figure outputs.                                                    |
+| `.github/workflows/r-cristae-prediction-validation.yml` | Regenerates the Prism input, runs subject-level LOSO predictive validation, verifies the expected outputs, and uploads the results as an artifact.      |
+| `.github/workflows/r-cristae-log-sensitivity.yml`       | Regenerates the Prism input, runs the log-transformed LOSO sensitivity analysis, verifies the expected outputs, and uploads the results as an artifact. |
 
-The seven workflows included in the archived `v1.0.0` release passed release
-validation. The two predictive-development workflows have also passed their
-GitHub Actions integration runs in the current development state.
+The original seven workflows were already included in the v1.0.0 release.
+Version v1.1.0 adds the predictive-validation and log-transformed sensitivity
+workflows to the released analytical workflow.
 
 The Python workflow is covered by synthetic tests. The R workflows are covered
 by integration checks that execute the complete analysis scripts against the
 included curated workbooks and verify the expected generated outputs.
-
-A final reproducibility run of all workflows is performed before the formal
-versioned release.
 
 ## Local testing and validation
 
@@ -613,36 +609,37 @@ The validation and release-readiness procedures are documented in
 
 ## Current status
 
-| Component | Status |
-| --- | --- |
-| Python preprocessing script | Included |
-| Python dependency record | Included |
-| Python synthetic tests | Passed |
-| Python GitHub Actions workflow | Passed |
-| Processed Python CSV files | Included; approved for public release |
-| Curated manual workbook | Included; approved for public release |
-| Curated automated workbook | Included; approved for public release |
-| Representative QC example | Included; approved for public release |
-| Prism input preparation workflow | Implemented and passed |
-| Total-cristae analysis workflow | Implemented and passed |
-| Subject-heterogeneity workflow | Implemented and passed |
-| Cristae LMM workflow | Implemented and passed |
-| Global cristae class-profile workflow | Implemented and passed |
-| Manual-versus-automated agreement workflow | Implemented and passed |
-| Predictive validation workflow | Implemented and passed in current development |
-| Log-transformed predictive sensitivity workflow | Implemented and passed in current development |
-| Verification of expected R output files | Passed |
-| Root-level citation metadata | Included |
-| Software license | MIT |
-| Data and QC license | CC BY 4.0 |
-| Formal versioned release | v1.0.0 |
-| Zenodo archive | Published |
-| Zenodo version DOI | 10.5281/zenodo.21872764 |
-| Zenodo concept DOI | 10.5281/zenodo.21872763 |
+| Component                                       | Status                                |
+| ----------------------------------------------- | ------------------------------------- |
+| Python preprocessing script                     | Included                              |
+| Python dependency record                        | Included                              |
+| Python synthetic tests                          | Passed                                |
+| Python GitHub Actions workflow                  | Passed                                |
+| Processed Python CSV files                      | Included; approved for public release |
+| Curated manual workbook                         | Included; approved for public release |
+| Curated automated workbook                      | Included; approved for public release |
+| Representative QC example                       | Included; approved for public release |
+| Prism input preparation workflow                | Implemented and passed                |
+| Total-cristae analysis workflow                 | Implemented and passed                |
+| Subject-heterogeneity workflow                  | Implemented and passed                |
+| Cristae LMM workflow                            | Implemented and passed                |
+| Global cristae class-profile workflow           | Implemented and passed                |
+| Manual-versus-automated agreement workflow      | Implemented and passed                |
+| Predictive validation workflow                  | Implemented and passed                |
+| Log-transformed predictive sensitivity workflow | Implemented and passed                |
+| Verification of expected R output files         | Passed                                |
+| Root-level citation metadata                    | Included                              |
+| Software license                                | MIT                                   |
+| Data and QC license                             | CC BY 4.0                             |
+| Formal versioned release                        | v1.1.0                                |
+| Zenodo archive                                  | Published                             |
+| Zenodo version DOI                              | 10.5281/zenodo.21890084               |
+| Zenodo concept DOI                              | 10.5281/zenodo.21872763               |
 
-The archived `v1.0.0` release remains unchanged and citable through its
-version DOI. The current development state extends that validated release with
-subject-level predictive validation and a log-transformed sensitivity analysis.
+Version `v1.1.0` extends the original `v1.0.0` release with subject-level
+predictive validation and a log-transformed predictive sensitivity analysis.
+The previous release remains an immutable historical Zenodo record.
+
 The curated data and analytical outputs are associated with the accompanying
 research publication.
 
@@ -654,23 +651,23 @@ separately.
 
 The repository includes:
 
-- the two curated analytical workbooks;
-- the three processed Python CSV files;
-- one representative QC example;
-- the Python and R analysis scripts;
-- automated validation workflows.
+* the two curated analytical workbooks;
+* the three processed Python CSV files;
+* one representative QC example;
+* the Python and R analysis scripts;
+* automated validation workflows.
 
 The research-derived materials currently included in the repository have been
 reviewed and approved for public release.
 
 The repository does not include:
 
-- raw microscopy images;
-- the complete upstream segmentation dataset;
-- complete patient-level QC material;
-- confidential manuscript files;
-- protected source metadata;
-- research materials that have not been approved for public release.
+* raw microscopy images;
+* the complete upstream segmentation dataset;
+* complete patient-level QC material;
+* confidential manuscript files;
+* protected source metadata;
+* research materials that have not been approved for public release.
 
 Before additional research-derived files are released, they should be reviewed
 for subject or sample identifiers, filenames, local paths, embedded metadata,
@@ -684,17 +681,17 @@ Citation metadata are provided in the root-level
 
 ### Repository citation
 
-The archived release `v1.0.0` is available from Zenodo:
+The current archived release `v1.1.0` is available from Zenodo:
 
-**Version DOI:**  
-[10.5281/zenodo.21872764](https://doi.org/10.5281/zenodo.21872764)
+**Version DOI:**
+[10.5281/zenodo.21890084](https://doi.org/10.5281/zenodo.21890084)
 
-**Concept DOI:**  
+**Concept DOI:**
 [10.5281/zenodo.21872763](https://doi.org/10.5281/zenodo.21872763)
 
-The version DOI identifies the archived `v1.0.0` release. The concept DOI
-identifies the project as a whole and should be used when referring generally
-to the evolving software repository.
+The version DOI identifies the archived `v1.1.0` release. The concept DOI
+identifies the project as a whole across versions and should be used when
+referring generally to the evolving software repository.
 
 The associated research article is intended to be the preferred scientific
 citation once its final bibliographic metadata are available.
