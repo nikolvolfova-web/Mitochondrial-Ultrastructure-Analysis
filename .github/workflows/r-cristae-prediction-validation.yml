@@ -1,0 +1,97 @@
+name: Test cristae predictive validation
+
+on:
+  push:
+    branches:
+      - feature/cristae-prediction
+      - main
+    paths:
+      - "scripts/R/cristae_prediction_validation.R"
+      - "scripts/R/prepare_prism_input.R"
+      - "data/curated/**"
+      - ".github/workflows/r-cristae-prediction-validation.yml"
+
+  pull_request:
+    paths:
+      - "scripts/R/cristae_prediction_validation.R"
+      - "scripts/R/prepare_prism_input.R"
+      - "data/curated/**"
+      - ".github/workflows/r-cristae-prediction-validation.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cristae-prediction-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Verify source files
+        run: |
+          test -f scripts/R/prepare_prism_input.R
+          test -f scripts/R/cristae_prediction_validation.R
+          test -f data/curated/cristae_manual.xlsx
+          test -f data/curated/cristae_automated.xlsx
+
+      - name: Install required R packages
+        run: |
+          Rscript -e '
+          install.packages(
+            c(
+              "readxl",
+              "dplyr",
+              "tidyr",
+              "stringr",
+              "writexl",
+              "tibble",
+              "ggplot2",
+              "lme4"
+            )
+          )
+          '
+
+      - name: Generate Prism input
+        run: |
+          Rscript scripts/R/prepare_prism_input.R
+
+      - name: Verify Prism input
+        run: |
+          test -f results/derived/Prism_input.xlsx
+
+      - name: Run cristae predictive validation
+        shell: bash
+        run: |
+          mkdir -p results/derived/cristae_prediction_validation
+          set -o pipefail
+          Rscript scripts/R/cristae_prediction_validation.R 2>&1             | tee results/derived/cristae_prediction_validation/analysis_run.log
+
+      - name: Verify predictive-validation outputs
+        run: |
+          test -f results/derived/cristae_prediction_validation/01_prediction_input_and_QC.xlsx
+          test -f results/derived/cristae_prediction_validation/02_LOSO_predictions.xlsx
+          test -f results/derived/cristae_prediction_validation/03_prediction_performance.xlsx
+          test -f results/derived/cristae_prediction_validation/04_prediction_model_report.txt
+          test -f results/derived/cristae_prediction_validation/R_session_info.txt
+          test -d results/derived/cristae_prediction_validation/cristae_per_mito
+          test -d results/derived/cristae_prediction_validation/total_cristae_per_image
+
+      - name: Upload predictive-validation results
+        uses: actions/upload-artifact@v7
+        with:
+          name: cristae-prediction-validation-results
+          path: |
+            results/derived/cristae_prediction_validation/
+            results/derived/Prism_input.xlsx
+          if-no-files-found: error
+          retention-days: 14

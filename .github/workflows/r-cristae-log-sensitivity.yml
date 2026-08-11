@@ -1,0 +1,97 @@
+name: Test cristae log sensitivity analysis
+
+on:
+  push:
+    branches:
+      - feature/cristae-prediction
+      - main
+    paths:
+      - "scripts/R/cristae_log_sensitivity_analysis.R"
+      - "scripts/R/prepare_prism_input.R"
+      - "data/curated/**"
+      - ".github/workflows/r-cristae-log-sensitivity.yml"
+
+  pull_request:
+    paths:
+      - "scripts/R/cristae_log_sensitivity_analysis.R"
+      - "scripts/R/prepare_prism_input.R"
+      - "data/curated/**"
+      - ".github/workflows/r-cristae-log-sensitivity.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cristae-log-sensitivity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Verify source files
+        run: |
+          test -f scripts/R/prepare_prism_input.R
+          test -f scripts/R/cristae_log_sensitivity_analysis.R
+          test -f data/curated/cristae_manual.xlsx
+          test -f data/curated/cristae_automated.xlsx
+
+      - name: Install required R packages
+        run: |
+          Rscript -e '
+          install.packages(
+            c(
+              "readxl",
+              "dplyr",
+              "tidyr",
+              "stringr",
+              "writexl",
+              "tibble",
+              "ggplot2",
+              "lme4"
+            )
+          )
+          '
+
+      - name: Generate Prism input
+        run: |
+          Rscript scripts/R/prepare_prism_input.R
+
+      - name: Verify Prism input
+        run: |
+          test -f results/derived/Prism_input.xlsx
+
+      - name: Run log-transformed sensitivity analysis
+        shell: bash
+        run: |
+          mkdir -p results/derived/log_sensitivity_prediction
+          set -o pipefail
+          Rscript scripts/R/cristae_log_sensitivity_analysis.R 2>&1             | tee results/derived/log_sensitivity_prediction/analysis_run.log
+
+      - name: Verify sensitivity-analysis outputs
+        run: |
+          test -f results/derived/log_sensitivity_prediction/log_sensitivity_prediction_results.xlsx
+          test -f results/derived/log_sensitivity_prediction/log_sensitivity_report.txt
+          test -f results/derived/log_sensitivity_prediction/R_session_info.txt
+          test -d results/derived/log_sensitivity_prediction/cristae_per_mito
+          test -d results/derived/log_sensitivity_prediction/total_cristae_per_image
+          test -f results/derived/log_sensitivity_prediction/cristae_per_mito/01_log_sensitivity_predicted_vs_observed.png
+          test -f results/derived/log_sensitivity_prediction/total_cristae_per_image/01_log_sensitivity_predicted_vs_observed.png
+
+      - name: Upload sensitivity-analysis results
+        uses: actions/upload-artifact@v7
+        with:
+          name: cristae-log-sensitivity-results
+          path: |
+            results/derived/log_sensitivity_prediction/
+            results/derived/Prism_input.xlsx
+          if-no-files-found: error
+          retention-days: 14
